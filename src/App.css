@@ -36,3 +36,23 @@
     transform: rotate(360deg);
   }
 }
+
+.task-item {
+  background-color: white;
+  padding: 16px;
+  margin-bottom: 8px;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.task-item.dragging {
+  opacity: 0.5;
+}
+
+.date-cell {
+  height: 100%;
+}
+
+.date-cell.dragging-over {
+  background-color: #c6f6d5;
+}

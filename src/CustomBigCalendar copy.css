@@ -1,0 +1,72 @@
+/* CustomBigCalendar.css */
+.rbc-day-bg.highlight {
+  background-color: #c6f6d5; /* 高亮显示颜色 */
+}
+
+.task-item {
+  background-color: white;
+  padding: 16px;
+  margin-bottom: 8px;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+}
+
+.task-item.dragging {
+  opacity: 0.5;
+  transform: scale(0.9); /* 动态缩放 */
+}
+
+.rbc-agenda-view table.rbc-agenda-table {
+  width: 100%;
+  border-spacing: 0;
+  border-collapse: separate;
+
+}
+
+.rbc-agenda-date-cell,
+.rbc-agenda-time-cell {
+  white-space: nowrap;
+  width: 120px;
+}
+
+
+
+.rbc-agenda-view table.rbc-agenda-table .rbc-agenda-event-cell {
+  width: auto;
+}
+
+.rbc-calendar {
+  box-sizing: border-box;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.rbc-calendar *,
+.rbc-calendar *:before,
+.rbc-calendar *:after {
+  box-sizing: inherit;
+}
+
+
+.rbc-abs-full {
+  overflow: hidden;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+.rbc-ellipsis {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rbc-rtl {
+  direction: rtl;
+}
