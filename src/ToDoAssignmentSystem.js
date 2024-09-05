@@ -9,7 +9,7 @@ import './CustomBigCalendar.css';
 
 const localizer = momentLocalizer(moment);
 
-const API_BASE_URL = 'https://cfw-bun-hono-drizzle.haydonge.workers.dev'; // 替换为您的实际API基础URL
+const API_BASE_URL = 'https://todo.knowivf.ac.cn'; // 替换为您的实际API基础URL
 
 const RecycleBin = ({ isOver }) => (
   <div className={`flex items-center justify-center w-16 h-16 bg-gray-200 rounded-full ${isOver ? 'bg-red-200' : ''}`}>
@@ -108,12 +108,8 @@ const ToDoAssignmentSystem = () => {
   const [isCollapsed, setIsCollapsed] = useState(true);
   // const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    fetchTasks();
-    fetchEvents();
-  }, []);
-
-  const fetchTasks = async () => {
+ 
+  const fetchTasks = useCallback(async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/tasks`);
       if (!response.ok) throw new Error('获取任务失败');
@@ -122,24 +118,28 @@ const ToDoAssignmentSystem = () => {
     } catch (error) {
       console.error('获取任务时出错:', error);
     }
-  };
+  }, []);
 
-  const fetchEvents = async () => {
+  const fetchEvents = useCallback(async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/events`);
       if (!response.ok) throw new Error('获取事件失败');
       const data = await response.json();
       setEvents(data.map(event => ({
         ...event,
-        title: event.task_content, // 添加 title 属性  这个关系到是否有粗条纹....好奇怪
+        title: event.task_content,
         start: new Date(event.start),
         end: new Date(event.end)
       })));
     } catch (error) {
       console.error('获取事件时出错:', error);
     }
-  };
+  }, []);
 
+  useEffect(() => {
+    fetchTasks();
+    fetchEvents();
+  }, [fetchTasks, fetchEvents]);
 
 
   //拖拽
@@ -198,7 +198,7 @@ const ToDoAssignmentSystem = () => {
     }
   }, [tasks]);
 
-  const returnTaskToList = async (event) => {
+  const returnTaskToList = useCallback(async (event) => {
     try {
       const response = await fetch(`${API_BASE_URL}/return/${event.id}`, { method: 'POST' });
       if (!response.ok) throw new Error('退回任务失败');
@@ -207,9 +207,10 @@ const ToDoAssignmentSystem = () => {
     } catch (error) {
       console.error('退回任务时出错:', error);
     }
-  };
+  }, [fetchTasks]);
 
-  const completeTask = async (event) => {
+ 
+  const completeTask = useCallback(async (event) => {
     try {
       const updatedEvent = { ...event, is_completed: 1 };
       const response = await fetch(`${API_BASE_URL}/events/${event.id}`, {
@@ -225,7 +226,7 @@ const ToDoAssignmentSystem = () => {
     } catch (error) {
       console.error('完成任务时出错:', error);
     }
-  };
+  }, []);
 
   const handleSelectEvent = useCallback(async (event) => {
     const options = ['退回任务列表', '确认任务完成', '取消'];
@@ -268,6 +269,7 @@ const ToDoAssignmentSystem = () => {
  ), []);
 
 
+
   const eventStyleGetter = useCallback((event) => {
     let style = {
       backgroundColor: '#3174ad',
@@ -277,16 +279,21 @@ const ToDoAssignmentSystem = () => {
       border: '0px',
       display: 'block'
     };
-
+  
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);  // Set to start of day for accurate comparison
+  
     if (event.is_completed) {
-      style.backgroundColor = '#28a745';  // 绿色
-    } else if (new Date(event.end) < new Date()) {
-      style.backgroundColor = '#FFC0CB';  // 浅红色
-      style.color = 'black';
+      style.backgroundColor = '#28a745';  // Green for completed tasks
+    } else if (new Date(event.end) < today) {
+      style.backgroundColor = '#dc3545';  // Red for overdue tasks
+    } else if (new Date(event.start) <= today && today <= new Date(event.end)) {
+      style.backgroundColor = '#ffc107';  // Yellow for ongoing tasks
     }
-
+  
     return { style };
   }, []);
+
 
   const exportToCSV = () => {
     // 定义所有可能的字段
