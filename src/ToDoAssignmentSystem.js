@@ -106,7 +106,7 @@ const ToDoAssignmentSystem = () => {
   const [tasks, setTasks] = useState([]);
   const [events, setEvents] = useState([]);
   const [isCollapsed, setIsCollapsed] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
+  // const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     fetchTasks();
@@ -198,25 +198,6 @@ const ToDoAssignmentSystem = () => {
     }
   }, [tasks]);
 
-  const handleSelectEvent = useCallback(async (event) => {
-    const options = ['退回任务列表', '确认任务完成', '取消'];
-    const choice = window.prompt(`请选择操作:\n1. ${options[0]}\n2. ${options[1]}\n3. ${options[2]}\n\n请输入选项编号:`);
-    
-    switch(choice) {
-      case '1':
-        await returnTaskToList(event);
-        break;
-      case '2':
-        await completeTask(event);
-        window.location.reload();
-        break;
-      case '3':
-      default:
-        // 取消操作，不做任何事
-        break;
-    }
-  }, []);
-
   const returnTaskToList = async (event) => {
     try {
       const response = await fetch(`${API_BASE_URL}/return/${event.id}`, { method: 'POST' });
@@ -245,6 +226,27 @@ const ToDoAssignmentSystem = () => {
       console.error('完成任务时出错:', error);
     }
   };
+
+  const handleSelectEvent = useCallback(async (event) => {
+    const options = ['退回任务列表', '确认任务完成', '取消'];
+    const choice = window.prompt(`请选择操作:\n1. ${options[0]}\n2. ${options[1]}\n3. ${options[2]}\n\n请输入选项编号:`);
+    
+    switch(choice) {
+      case '1':
+        await returnTaskToList(event);
+        break;
+      case '2':
+        await completeTask(event);
+        window.location.reload();
+        break;
+      case '3':
+      default:
+        // 取消操作，不做任何事
+        break;
+    }
+  }, [returnTaskToList, completeTask]);
+
+ 
 
 
   const renderDateCellWrapper = useCallback(({ children, value }) => (

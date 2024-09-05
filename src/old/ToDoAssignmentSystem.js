@@ -105,7 +105,7 @@ const TaskList = React.memo(({ tasks, isCollapsed, toggleSidebar, exportToCSV, i
 const ToDoAssignmentSystem = () => {
   const [tasks, setTasks] = useState([]);
   const [events, setEvents] = useState([]);
-  const [isCollapsed, setIsCollapsed] = useState(true);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
