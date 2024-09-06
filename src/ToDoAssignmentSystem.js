@@ -6,6 +6,8 @@ import Papa from 'papaparse';
 import { Trash2 } from 'lucide-react';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import './CustomBigCalendar.css';
+import Dashboard from './components/Dashbaords'; // 确保导入新创建的 Dashboard 组件
+
 
 const localizer = momentLocalizer(moment);
 
@@ -17,146 +19,46 @@ const RecycleBin = ({ isOver }) => (
   </div>
 );
 
-const TaskList = React.memo(({ tasks, isCollapsed, toggleSidebar, exportToCSV, importFromCSV }) => {
-  const fileInputRef = useRef(null);
 
-  const handleImportClick = () => {
-    fileInputRef.current.click();
-  };
-
-  return (
-    <div className={`transition-all duration-300 ease-in-out ${isCollapsed ? 'w-16' : 'w-1/5'} bg-gray-100`}>
-      <button
-        onClick={toggleSidebar}
-        className="w-full py-2 bg-blue-500 text-white font-bold"
-      >
-        {isCollapsed ? '>' : '<'}
-      </button>
-      {!isCollapsed && (
-        <Droppable droppableId="taskList" type="TASK">
-          {(provided, snapshot) => (
-            <div
-              {...provided.droppableProps}
-              ref={provided.innerRef}
-              className={`p-4 ${snapshot.isDraggingOver ? 'bg-blue-100' : ''} overflow-y-auto h-[calc(80vh-120px)]`}
-            >
-              <h2 className="text-xl font-bold mb-4">任务列表</h2>
-              {tasks.map((task, index) => (
-                <Draggable key={task.id} draggableId={task.id.toString()} index={index}>
-                  {(provided, snapshot) => (
-                    <div
-                      ref={provided.innerRef}
-                      {...provided.draggableProps}
-                      {...provided.dragHandleProps}
-                      className={`task-item ${snapshot.isDragging ? 'dragging' : ''}`}
-                    >
-                      <h3 className="font-bold">{task.content}</h3>
-                      <p>申请人: {task.applicant}</p>
-                      <p>截止日期: {task.due_date}</p>
-                      <p>工期: {task.duration} 天</p>
-                    </div>
-                  )}
-                </Draggable>
-              ))}
-              {provided.placeholder}
-            </div>
-          )}
-        </Droppable>
-      )}
-      {!isCollapsed && (
-        <div className="p-4 border-t border-gray-200">
-          <Droppable droppableId="recycleBin" type="TASK">
-            {(provided, snapshot) => (
-              <div
-                ref={provided.innerRef}
-                {...provided.droppableProps}
-                className="mt-auto p-4 flex justify-center"
-              >
-                <RecycleBin isOver={snapshot.isDraggingOver} />
-                {provided.placeholder}
-              </div>
-            )}
-          </Droppable>
-          <button 
-            onClick={exportToCSV}
-            className="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mb-2"
-          >
-            导出CSV
-          </button>
-          <button 
-            onClick={handleImportClick}
-            className="w-full bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
-          >
-            导入CSV
-          </button>
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={importFromCSV}
-            style={{ display: 'none' }}
-            accept=".csv"
-          />
-        </div>
-      )}
-    </div>
-  );
-});
-
-
-const fetchExternalTasks = async () => {
-  try {
-    const response = await fetch('https://opensheet.elk.sh/1ge-pyzr0uMTxlALiiUh_sEzdVo1ikGJGavLF04u6AVU/4');
-    if (!response.ok) throw new Error('获取外部任务失败');
-    const data = await response.json();
-    
-    // 筛选出未完成的任务
-    const unfinishedTasks = data.filter(task => task['完成状态'] === '未完成');
-    
-    // 转换数据格式以匹配现有的任务结构
-    const formattedTasks = unfinishedTasks.map(task => ({
-      content: `${task['工单号']} - ${task['治具名称']} - ${task['机种/料号']}`,
-      applicant: task['申请人'],
-      apply_date: task['申请日期'],
-      due_date: task['需求日期'],
-      duration: Math.ceil(parseInt(task['预估工时']) / 8) || 1,  // 将工时转换为工作天数，向上取整，最小为1天
-    }));
-
-    return formattedTasks;
-  } catch (error) {
-    console.error('获取外部任务时出错:', error);
-    return [];
-  }
-};
 
 const ToDoAssignmentSystem = () => {
   const [tasks, setTasks] = useState([]);
   const [events, setEvents] = useState([]);
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [lastApiCall, setLastApiCall] = useState(null);
- 
+  const [updateTrigger, setUpdateTrigger] = useState(0);
+
+  const calculateStats = useCallback(() => {
+    const taskStats = {
+      total: tasks.length,
+    };
+
+    const today = new Date();
+    const eventStats = {
+      total: events.length,
+      completed: events.filter(event => event.is_completed).length,
+      inProgress: events.filter(event => 
+        new Date(event.start) <= today && today <= new Date(event.end) && !event.is_completed
+      ).length,
+      overdue: events.filter(event => 
+        new Date(event.end) < today && !event.is_completed
+      ).length,
+    };
+
+    return { taskStats, eventStats };
+  }, [tasks, events]);
+
+  const { taskStats, eventStats } = calculateStats();
+
   const fetchTasks = useCallback(async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/tasks`);
       if (!response.ok) throw new Error('获取任务失败');
       const data = await response.json();
-      
-      // 获取外部任务
-      const externalTasks = await fetchExternalTasks();
-      
-      // 合并内部和外部任务，并去重
-      const allTasks = [...data, ...externalTasks];
-      const uniqueTasks = allTasks.filter((task, index, self) =>
-        index === self.findIndex((t) => t.content === task.content)
-      );
-      
-      setTasks(uniqueTasks);
+      setTasks(data);
     } catch (error) {
       console.error('获取任务时出错:', error);
     }
   }, []);
-
-
-
 
   const fetchEvents = useCallback(async () => {
     try {
@@ -174,58 +76,64 @@ const ToDoAssignmentSystem = () => {
     }
   }, []);
 
-  const importExternalTasks = useCallback(async () => {
-    const now = new Date();
-    // 如果距离上次调用不到10分钟，则不再调用API
-    if (lastApiCall && (now - lastApiCall) < 300000) {
-      return;
-    }
+  useEffect(() => {
+    fetchTasks();
+    fetchEvents();
+  }, [fetchTasks, fetchEvents]);
 
-     const externalTasks = await fetchExternalTasks();
-     const newTasks = externalTasks.filter(externalTask => 
-      !tasks.some(task => task.content === externalTask.content) &&
-      !events.some(event => event.task_content === externalTask.content)
+  const checkTaskUniqueness = useCallback((newTask) => {
+    return !tasks.some(task => 
+      task.content === newTask.content &&
+      task.applicant === newTask.applicant &&
+      task.apply_date === newTask.apply_date
     );
+  }, [tasks]);
 
-
-
-    // 将新任务添加到数据库
-    for (const task of newTasks) {
+  const addTask = useCallback(async (taskData) => {
+    if (checkTaskUniqueness(taskData)) {
       try {
         const response = await fetch(`${API_BASE_URL}/tasks`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(task)
+          body: JSON.stringify(taskData)
         });
         if (!response.ok) throw new Error('创建任务失败');
+        await fetchTasks(); // 刷新任务列表
+        return true; // 任务添加成功
       } catch (error) {
         console.error('创建任务时出错:', error);
+        return false;
       }
     }
+    return false; // 任务已存在，未添加
+  }, [checkTaskUniqueness, fetchTasks]);
 
-    // 重新获取任务列表
-    await fetchTasks();
+  const calculateWorkingDays = (hours) => {
+    const hoursPerDay = 8;
+    return Math.ceil(hours / hoursPerDay);
+  };
 
-    // 更新上次API调用时间
-    setLastApiCall(now);
-  }, [tasks, events, lastApiCall, fetchTasks]);
-
-  useEffect(() => {
-    fetchTasks();
-    fetchEvents();
-    importExternalTasks();
-  }, [fetchTasks, fetchEvents, importExternalTasks]);
+  const checkEventUniqueness = useCallback((newEvent) => {
+    return !events.some(event => 
+      event.task_content === newEvent.task_content &&
+      event.applicant === newEvent.applicant &&
+      event.apply_date === newEvent.apply_date
+    );
+  }, [events]);
 
 
 
-  //拖拽
-
-  
+//第二段。。。。 const onDragEnd = useCallback(async (result) => {
   const onDragEnd = useCallback(async (result) => {
     if (!result.destination) return;
 
     const { source, destination, draggableId } = result;
     const task = tasks.find(t => t.id.toString() === draggableId);
+
+    if (!task) {
+      console.error('只能从任务列表拖拽任务到日历');
+      return;
+    }
 
     if (destination.droppableId === 'recycleBin') {
       try {
@@ -244,48 +152,86 @@ const ToDoAssignmentSystem = () => {
       const endDate = new Date(startDate);
       endDate.setDate(startDate.getDate() + task.duration);
 
-      const assignData = {
-        responsible: "默认负责人", // 这里可以添加一个方式来设置负责人
+      const newEvent = {
+        task_content: task.content,
+        applicant: task.applicant,
+        apply_date: task.apply_date,
+        responsible: "默认负责人",
         start: startDate.toISOString(),
         end: endDate.toISOString()
       };
+
+      if (!checkEventUniqueness(newEvent)) {
+        alert('该任务已存在于日历中，无法重复添加。');
+        return;
+      }
 
       try {
         const response = await fetch(`${API_BASE_URL}/assign/${task.id}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(assignData)
+          body: JSON.stringify(newEvent)
         });
         if (!response.ok) throw new Error('分配任务失败');
 
         const assignedEvent = await response.json();
-        setEvents(prevEvents => [...prevEvents, {
-          ...assignedEvent,
-          title: assignedEvent.task_content,
-          start: new Date(assignedEvent.start),
-          end: new Date(assignedEvent.end)
-        }]);
+        window.location.reload();
+        
+        // 使用函数式更新来确保我们总是基于最新的状态进行更新
+        setEvents(prevEvents => [
+          ...prevEvents,
+          {
+            ...assignedEvent,
+            title: assignedEvent.task_content,
+            start: new Date(assignedEvent.start),
+            end: new Date(assignedEvent.end)
+          }
+        ]);
+        
         setTasks(prevTasks => prevTasks.filter(t => t.id !== task.id));
         window.location.reload();
 
+        // 触发更新
+        setUpdateTrigger(prev => prev + 1);
       } catch (error) {
         console.error('分配任务时出错:', error);
       }
     }
-  }, [tasks]);
+  }, [tasks, checkEventUniqueness]);
+
+  // 使用 useEffect 来监听 events 的变化
+  useEffect(() => {
+    console.log('Events updated:', events);
+  }, [events]);
+
+
+//...
+
+
 
   const returnTaskToList = useCallback(async (event) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/return/${event.id}`, { method: 'POST' });
-      if (!response.ok) throw new Error('退回任务失败');
-      await fetchTasks(); // 重新获取任务列表
-      setEvents(prevEvents => prevEvents.filter(e => e.id !== event.id));
+      const taskData = {
+        content: event.task_content,
+        applicant: event.applicant,
+        apply_date: event.apply_date,
+        due_date: event.due_date,
+        duration: event.duration
+      };
+
+      if (checkTaskUniqueness(taskData)) {
+        const response = await fetch(`${API_BASE_URL}/return/${event.id}`, { method: 'POST' });
+        if (!response.ok) throw new Error('退回任务失败');
+        await fetchTasks(); // 重新获取任务列表  ....需要强制删除。。。~~~
+        setEvents(prevEvents => prevEvents.filter(e => e.id !== event.id));
+      } else {
+        alert('该任务已存在于任务列表中，无法退回。');
+      }
     } catch (error) {
       console.error('退回任务时出错:', error);
     }
-  }, [fetchTasks]);
+  }, [checkTaskUniqueness, fetchTasks]);
 
- 
   const completeTask = useCallback(async (event) => {
     try {
       const updatedEvent = { ...event, is_completed: 1 };
@@ -318,12 +264,11 @@ const ToDoAssignmentSystem = () => {
         break;
       case '3':
       default:
-        // 取消操作，不做任何事
         break;
     }
   }, [returnTaskToList, completeTask]);
 
- 
+
 
 
   const renderDateCellWrapper = useCallback(({ children, value }) => (
@@ -435,7 +380,7 @@ const ToDoAssignmentSystem = () => {
     }
   };
 
-  const importFromCSV = async (e) => {
+  const importFromCSV = useCallback((e) => {
     const file = e.target.files[0];
     if (file) {
       Papa.parse(file, {
@@ -454,39 +399,13 @@ const ToDoAssignmentSystem = () => {
               duration: parseInt(row.duration)
             };
 
-            // 检查是否在任务列表中存在重复
-            const isDuplicateTask = tasks.some(task => 
-              task.content === taskData.content &&
-              task.applicant === taskData.applicant &&
-              task.apply_date === taskData.apply_date
-            );
-
-            // 检查是否在事件列表中存在重复
-            const isDuplicateEvent = events.some(event => 
-              event.task_content === taskData.content &&
-              event.applicant === taskData.applicant &&
-              event.apply_date === taskData.apply_date
-            );
-
-            if (!isDuplicateTask && !isDuplicateEvent) {
-              try {
-                const response = await fetch(`${API_BASE_URL}/tasks`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify(taskData)
-                });
-                if (!response.ok) throw new Error('创建任务失败');
-                newTasks++;
-              } catch (error) {
-                console.error('创建任务时出错:', error);
-              }
+            const added = await addTask(taskData);
+            if (added) {
+              newTasks++;
             } else {
               skippedTasks++;
             }
           }
-
-          // 刷新任务列表
-          await fetchTasks();
 
           alert(`导入完成。\n新增任务: ${newTasks}\n跳过重复任务: ${skippedTasks}`);
         },
@@ -494,38 +413,90 @@ const ToDoAssignmentSystem = () => {
         skipEmptyLines: true
       });
     }
-  };
+  }, [addTask]);
+
+  const importExternalData = useCallback(async () => {
+    try {
+      const response = await fetch('https://opensheet.elk.sh/1ge-pyzr0uMTxlALiiUh_sEzdVo1ikGJGavLF04u6AVU/4');
+      if (!response.ok) throw new Error('获取外部数据失败');
+      const data = await response.json();
+
+      let newTasks = 0;
+      let skippedTasks = 0;
+
+      for (const item of data) {
+        if (item['完成状态'] === '未完成') {
+          const estimatedHours = parseInt(item['预估工时']) || 0;
+          const taskData = {
+            content: `${item['工单号']} - ${item['治具名称']}`,
+            applicant: item['申请人'],
+            apply_date: item['申请日期'],
+            due_date: item['需求日期'],
+            duration: calculateWorkingDays(estimatedHours)
+          };
+
+          const isUnique = checkTaskUniqueness(taskData) && checkEventUniqueness({
+            task_content: taskData.content,
+            applicant: taskData.applicant,
+            apply_date: taskData.apply_date
+          });
+
+          if (isUnique) {
+            try {
+              const response = await fetch(`${API_BASE_URL}/tasks`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(taskData)
+              });
+              if (!response.ok) throw new Error('创建任务失败');
+              newTasks++;
+            } catch (error) {
+              console.error('创建任务时出错:', error);
+            }
+          } else {
+            skippedTasks++;
+          }
+        }
+      }
+
+      await fetchTasks(); // 刷新任务列表
+      alert(`导入完成。\n新增任务: ${newTasks}\n跳过重复任务: ${skippedTasks}`);
+    } catch (error) {
+      console.error('导入外部数据时出错:', error);
+      alert('导入外部数据失败，请查看控制台了解详细错误信息。');
+    }
+  }, [checkTaskUniqueness, checkEventUniqueness, fetchTasks]);
 
   const toggleSidebar = () => {
     setIsCollapsed(!isCollapsed);
   };
 
-  const CustomAgendaEvent = ({ event }) => (
-    <div className="custom-agenda-event">
-      <div className="agenda-event-title">{event.task_content}</div>
-      <div className="agenda-event-details">
-        <div>申请人: {event.applicant}</div>
-        <div>负责人: {event.responsible}</div>
-        <div>工期: {event.duration} 天</div>
-      </div>
-    </div>
-  );
+  // const CustomAgendaEvent = ({ event }) => (
+  //   <div className="custom-agenda-event">
+  //     <div className="agenda-event-title">{event.task_content}</div>
+  //     <div className="agenda-event-details">
+  //       <div>申请人: {event.applicant}</div>
+  //       <div>负责人: {event.responsible}</div>
+  //       <div>工期: {event.duration} 天</div>
+  //     </div>
+  //   </div>
+  // );
 
-  const CustomAgendaDate = ({ label }) => (
-    <span>{moment(label).format('YYYY-MM-DD')}</span>
-  );
+  // const CustomAgendaDate = ({ label }) => (
+  //   <span>{moment(label).format('YYYY-MM-DD')}</span>
+  // );
 
-  const CustomAgendaTime = ({ event }) => (
-    <span>{moment(event.start).format('HH:mm')} - {moment(event.end).format('HH:mm')}</span>
-  );
+  // const CustomAgendaTime = ({ event }) => (
+  //   <span>{moment(event.start).format('HH:mm')} - {moment(event.end).format('HH:mm')}</span>
+  // );
 
   const customComponents = {
     dateCellWrapper: renderDateCellWrapper,
-    agenda: {
-      event: CustomAgendaEvent,
-      date: CustomAgendaDate,
-      time: CustomAgendaTime,
-    },
+    // agenda: {
+    //   // event: CustomAgendaEvent,
+    //   // date: CustomAgendaDate,
+    //   time: CustomAgendaTime,
+    // },
   };
 
   return (
@@ -538,30 +509,128 @@ const ToDoAssignmentSystem = () => {
             toggleSidebar={toggleSidebar}
             exportToCSV={exportToCSV}
             importFromCSV={importFromCSV}
+            importExternalData={importExternalData}
           />
-          <div className={`transition-all duration-300 ease-in-out ${isCollapsed ? 'w-[calc(100%-4rem)]' : 'w-2/3'} p-4`}>
-            <Calendar
-              localizer={localizer}
-              events={events}
-              startAccessor="start"
-              endAccessor="end"
-              style={{ height: 'calc(100vh - 2rem)' }}
-              components={customComponents}
-              onSelectEvent={handleSelectEvent}
-              selectable
-              eventPropGetter={eventStyleGetter}
-              formats={{
-                agendaDateFormat: 'YYYY-MM-DD',
-                agendaTimeRangeFormat: ({ start, end }) => {
-                  return `${moment(start).format('HH:mm')} - ${moment(end).format('HH:mm')}`;
-                },
-              }}
-            />
+          <div className={`transition-all duration-300 ease-in-out ${isCollapsed ? 'w-[calc(100%-4rem)]' : 'w-2/3'} p-4 flex`}>
+            <div className="flex-grow">
+              <Calendar
+                localizer={localizer}
+                events={events}
+                startAccessor="start"
+                endAccessor="end"
+                style={{ height: 'calc(100vh - 2rem)' }}
+                components={customComponents}
+                onSelectEvent={handleSelectEvent}
+                selectable
+                eventPropGetter={eventStyleGetter}
+                formats={{
+                  agendaDateFormat: 'YYYY-MM-DD',
+                  agendaTimeRangeFormat: ({ start, end }) => {
+                    return `${moment(start).format('HH:mm')} - ${moment(end).format('HH:mm')}`;
+                  },
+                }}
+                key={updateTrigger}
+              />
+            </div>
+            <div className="w-[10%]  bg-gray-100">
+              <Dashboard taskStats={taskStats} eventStats={eventStats} />
+            </div>
           </div>
         </div>
       </DragDropContext>
     </div>
   );
 };
+const TaskList = React.memo(({ tasks, isCollapsed, toggleSidebar, exportToCSV, importFromCSV,importExternalData }) => {
+  const fileInputRef = useRef(null);
+
+  const handleImportClick = () => {
+    fileInputRef.current.click();
+  };
+
+  return (
+    <div className={`transition-all duration-300 ease-in-out ${isCollapsed ? 'w-16' : 'w-1/5'} bg-gray-100`}>
+      <button
+        onClick={toggleSidebar}
+        className="w-full py-2 bg-blue-500 text-white font-bold"
+      >
+        {isCollapsed ? '>' : '<'}
+      </button>
+      {!isCollapsed && (
+        <Droppable droppableId="taskList" type="TASK">
+          {(provided, snapshot) => (
+            <div
+              {...provided.droppableProps}
+              ref={provided.innerRef}
+              className={`p-4 ${snapshot.isDraggingOver ? 'bg-blue-100' : ''} overflow-y-auto h-[calc(80vh-120px)]`}
+            >
+              <h2 className="text-xl font-bold mb-4">任务列表</h2>
+              {tasks.map((task, index) => (
+                <Draggable key={task.id} draggableId={task.id.toString()} index={index}>
+                  {(provided, snapshot) => (
+                    <div
+                      ref={provided.innerRef}
+                      {...provided.draggableProps}
+                      {...provided.dragHandleProps}
+                      className={`task-item ${snapshot.isDragging ? 'dragging' : ''}`}
+                    >
+                      <h3 className="font-bold">{task.content}</h3>
+                      <p>申请人: {task.applicant}</p>
+                      <p>截止日期: {task.due_date}</p>
+                      <p>工期: {task.duration} 天</p>
+                    </div>
+                  )}
+                </Draggable>
+              ))}
+              {provided.placeholder}
+            </div>
+          )}
+        </Droppable>
+      )}
+      {!isCollapsed && (
+        <div className="p-4 border-t border-gray-200">
+          <Droppable droppableId="recycleBin" type="TASK">
+            {(provided, snapshot) => (
+              <div
+                ref={provided.innerRef}
+                {...provided.droppableProps}
+                className="mt-auto p-4 flex justify-center"
+              >
+                <RecycleBin isOver={snapshot.isDraggingOver} />
+                {provided.placeholder}
+              </div>
+            )}
+          </Droppable>
+          <button 
+            onClick={exportToCSV}
+            className="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mb-2"
+          >
+            导出CSV
+          </button>
+          <button 
+            onClick={handleImportClick}
+            className="w-full bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+          >
+            导入CSV
+          </button>
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={importFromCSV}
+            style={{ display: 'none' }}
+            accept=".csv"
+          />
+           <button 
+            onClick={importExternalData}
+            className="w-full bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded mt-2"
+          >
+            导入外部数据
+          </button>
+        </div>
+      )}
+    </div>
+  );
+});
+
 
 export default ToDoAssignmentSystem;
