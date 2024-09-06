@@ -102,23 +102,61 @@ const TaskList = React.memo(({ tasks, isCollapsed, toggleSidebar, exportToCSV, i
   );
 });
 
+
+const fetchExternalTasks = async () => {
+  try {
+    const response = await fetch('https://opensheet.elk.sh/1ge-pyzr0uMTxlALiiUh_sEzdVo1ikGJGavLF04u6AVU/4');
+    if (!response.ok) throw new Error('获取外部任务失败');
+    const data = await response.json();
+    
+    // 筛选出未完成的任务
+    const unfinishedTasks = data.filter(task => task['完成状态'] === '未完成');
+    
+    // 转换数据格式以匹配现有的任务结构
+    const formattedTasks = unfinishedTasks.map(task => ({
+      content: `${task['工单号']} - ${task['治具名称']} - ${task['机种/料号']}`,
+      applicant: task['申请人'],
+      apply_date: task['申请日期'],
+      due_date: task['需求日期'],
+      duration: Math.ceil(parseInt(task['预估工时']) / 8) || 1,  // 将工时转换为工作天数，向上取整，最小为1天
+    }));
+
+    return formattedTasks;
+  } catch (error) {
+    console.error('获取外部任务时出错:', error);
+    return [];
+  }
+};
+
 const ToDoAssignmentSystem = () => {
   const [tasks, setTasks] = useState([]);
   const [events, setEvents] = useState([]);
-  const [isCollapsed, setIsCollapsed] = useState(true);
-  // const [isLoading, setIsLoading] = useState(false);
-
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [lastApiCall, setLastApiCall] = useState(null);
  
   const fetchTasks = useCallback(async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/tasks`);
       if (!response.ok) throw new Error('获取任务失败');
       const data = await response.json();
-      setTasks(data);
+      
+      // 获取外部任务
+      const externalTasks = await fetchExternalTasks();
+      
+      // 合并内部和外部任务，并去重
+      const allTasks = [...data, ...externalTasks];
+      const uniqueTasks = allTasks.filter((task, index, self) =>
+        index === self.findIndex((t) => t.content === task.content)
+      );
+      
+      setTasks(uniqueTasks);
     } catch (error) {
       console.error('获取任务时出错:', error);
     }
   }, []);
+
+
+
 
   const fetchEvents = useCallback(async () => {
     try {
@@ -136,10 +174,48 @@ const ToDoAssignmentSystem = () => {
     }
   }, []);
 
+  const importExternalTasks = useCallback(async () => {
+    const now = new Date();
+    // 如果距离上次调用不到10分钟，则不再调用API
+    if (lastApiCall && (now - lastApiCall) < 300000) {
+      return;
+    }
+
+     const externalTasks = await fetchExternalTasks();
+     const newTasks = externalTasks.filter(externalTask => 
+      !tasks.some(task => task.content === externalTask.content) &&
+      !events.some(event => event.task_content === externalTask.content)
+    );
+
+
+
+    // 将新任务添加到数据库
+    for (const task of newTasks) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/tasks`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(task)
+        });
+        if (!response.ok) throw new Error('创建任务失败');
+      } catch (error) {
+        console.error('创建任务时出错:', error);
+      }
+    }
+
+    // 重新获取任务列表
+    await fetchTasks();
+
+    // 更新上次API调用时间
+    setLastApiCall(now);
+  }, [tasks, events, lastApiCall, fetchTasks]);
+
   useEffect(() => {
     fetchTasks();
     fetchEvents();
-  }, [fetchTasks, fetchEvents]);
+    importExternalTasks();
+  }, [fetchTasks, fetchEvents, importExternalTasks]);
+
 
 
   //拖拽
