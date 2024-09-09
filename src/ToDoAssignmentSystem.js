@@ -500,9 +500,9 @@ const ToDoAssignmentSystem = () => {
   };
 
   return (
-    <div className="relative">
+    <div className="relative flex h-screen">
       <DragDropContext onDragEnd={onDragEnd}>
-        <div className="flex h-screen">
+        <div className={`transition-all duration-300 ease-in-out ${isCollapsed ? 'w-10' : 'w-64'} flex-shrink-0`}>
           <TaskList 
             tasks={tasks} 
             isCollapsed={isCollapsed} 
@@ -511,37 +511,39 @@ const ToDoAssignmentSystem = () => {
             importFromCSV={importFromCSV}
             importExternalData={importExternalData}
           />
-          <div className={`transition-all duration-300 ease-in-out ${isCollapsed ? 'w-[calc(100%-4rem)]' : 'w-2/3'} p-4 flex`}>
-            <div className="flex-grow">
-              <Calendar
-                localizer={localizer}
-                events={events}
-                startAccessor="start"
-                endAccessor="end"
-                style={{ height: 'calc(100vh - 2rem)' }}
-                components={customComponents}
-                onSelectEvent={handleSelectEvent}
-                selectable
-                eventPropGetter={eventStyleGetter}
-                formats={{
-                  agendaDateFormat: 'YYYY-MM-DD',
-                  agendaTimeRangeFormat: ({ start, end }) => {
-                    return `${moment(start).format('HH:mm')} - ${moment(end).format('HH:mm')}`;
-                  },
-                }}
-                key={updateTrigger}
-              />
-            </div>
-            <div className="w-[10%]  bg-gray-100">
-              <Dashboard taskStats={taskStats} eventStats={eventStats} />
-            </div>
+        </div>
+        <div className="flex flex-grow">
+          <div className="flex-grow p-4">
+            <Calendar
+              localizer={localizer}
+              events={events}
+              startAccessor="start"
+              endAccessor="end"
+              style={{ height: 'calc(100vh - 2rem)' }}
+              components={customComponents}
+              onSelectEvent={handleSelectEvent}
+              selectable
+              eventPropGetter={eventStyleGetter}
+              formats={{
+                agendaDateFormat: 'YYYY-MM-DD',
+                agendaTimeRangeFormat: ({ start, end }) => {
+                  return `${moment(start).format('HH:mm')} - ${moment(end).format('HH:mm')}`;
+                },
+              }}
+              key={updateTrigger}
+            />
+          </div>
+          <div className="w-[10%] p-4 bg-gray-100">
+            <Dashboard taskStats={taskStats} eventStats={eventStats} />
           </div>
         </div>
       </DragDropContext>
     </div>
   );
 };
-const TaskList = React.memo(({ tasks, isCollapsed, toggleSidebar, exportToCSV, importFromCSV,importExternalData }) => {
+
+// 任务列表组件
+const TaskList = React.memo(({ tasks, isCollapsed, toggleSidebar, exportToCSV, importFromCSV, importExternalData }) => {
   const fileInputRef = useRef(null);
 
   const handleImportClick = () => {
@@ -549,7 +551,7 @@ const TaskList = React.memo(({ tasks, isCollapsed, toggleSidebar, exportToCSV, i
   };
 
   return (
-    <div className={`transition-all duration-300 ease-in-out ${isCollapsed ? 'w-16' : 'w-1/5'} bg-gray-100`}>
+    <div className={`h-full bg-gray-100 flex flex-col`}>
       <button
         onClick={toggleSidebar}
         className="w-full py-2 bg-blue-500 text-white font-bold"
@@ -557,80 +559,79 @@ const TaskList = React.memo(({ tasks, isCollapsed, toggleSidebar, exportToCSV, i
         {isCollapsed ? '>' : '<'}
       </button>
       {!isCollapsed && (
-        <Droppable droppableId="taskList" type="TASK">
-          {(provided, snapshot) => (
-            <div
-              {...provided.droppableProps}
-              ref={provided.innerRef}
-              className={`p-4 ${snapshot.isDraggingOver ? 'bg-blue-100' : ''} overflow-y-auto h-[calc(80vh-120px)]`}
-            >
-              <h2 className="text-xl font-bold mb-4">任务列表</h2>
-              {tasks.map((task, index) => (
-                <Draggable key={task.id} draggableId={task.id.toString()} index={index}>
-                  {(provided, snapshot) => (
-                    <div
-                      ref={provided.innerRef}
-                      {...provided.draggableProps}
-                      {...provided.dragHandleProps}
-                      className={`task-item ${snapshot.isDragging ? 'dragging' : ''}`}
-                    >
-                      <h3 className="font-bold">{task.content}</h3>
-                      <p>申请人: {task.applicant}</p>
-                      <p>截止日期: {task.due_date}</p>
-                      <p>工期: {task.duration} 天</p>
-                    </div>
-                  )}
-                </Draggable>
-              ))}
-              {provided.placeholder}
-            </div>
-          )}
-        </Droppable>
-      )}
-      {!isCollapsed && (
-        <div className="p-4 border-t border-gray-200">
-          <Droppable droppableId="recycleBin" type="TASK">
+        <>
+          <Droppable droppableId="taskList" type="TASK">
             {(provided, snapshot) => (
               <div
-                ref={provided.innerRef}
                 {...provided.droppableProps}
-                className="mt-auto p-4 flex justify-center"
+                ref={provided.innerRef}
+                className={`flex-grow p-4 ${snapshot.isDraggingOver ? 'bg-blue-100' : ''} overflow-y-auto`}
               >
-                <RecycleBin isOver={snapshot.isDraggingOver} />
+                <h2 className="text-xl font-bold mb-4">任务列表</h2>
+                {tasks.map((task, index) => (
+                  <Draggable key={task.id} draggableId={task.id.toString()} index={index}>
+                    {(provided, snapshot) => (
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.draggableProps}
+                        {...provided.dragHandleProps}
+                        className={`task-item ${snapshot.isDragging ? 'dragging' : ''}`}
+                      >
+                        <h3 className="font-bold">{task.content}</h3>
+                        <p>申请人: {task.applicant}</p>
+                        <p>截止日期: {task.due_date}</p>
+                        <p>工期: {task.duration} 天</p>
+                      </div>
+                    )}
+                  </Draggable>
+                ))}
                 {provided.placeholder}
               </div>
             )}
           </Droppable>
-          <button 
-            onClick={exportToCSV}
-            className="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mb-2"
-          >
-            导出CSV
-          </button>
-          <button 
-            onClick={handleImportClick}
-            className="w-full bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
-          >
-            导入CSV
-          </button>
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={importFromCSV}
-            style={{ display: 'none' }}
-            accept=".csv"
-          />
-           <button 
-            onClick={importExternalData}
-            className="w-full bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded mt-2"
-          >
-            导入外部数据
-          </button>
-        </div>
+          <div className="p-4 border-t border-gray-200">
+            <Droppable droppableId="recycleBin" type="TASK">
+              {(provided, snapshot) => (
+                <div
+                  ref={provided.innerRef}
+                  {...provided.droppableProps}
+                  className="mb-4 p-2 flex justify-center"
+                >
+                  <RecycleBin isOver={snapshot.isDraggingOver} />
+                  {provided.placeholder}
+                </div>
+              )}
+            </Droppable>
+            <button 
+              onClick={exportToCSV}
+              className="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mb-2"
+            >
+              导出CSV
+            </button>
+            <button 
+              onClick={handleImportClick}
+              className="w-full bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mb-2"
+            >
+              导入CSV
+            </button>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={importFromCSV}
+              style={{ display: 'none' }}
+              accept=".csv"
+            />
+            <button 
+              onClick={importExternalData}
+              className="w-full bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded"
+            >
+              导入外部数据
+            </button>
+          </div>
+        </>
       )}
     </div>
   );
 });
-
 
 export default ToDoAssignmentSystem;
