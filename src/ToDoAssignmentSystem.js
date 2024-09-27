@@ -81,8 +81,11 @@ const ToDoAssignmentSystem = () => {
     fetchEvents();
   }, [fetchTasks, fetchEvents]);
 
+  
+  
   const checkTaskUniqueness = useCallback((newTask) => {
     return !tasks.some(task => 
+      
       task.content === newTask.content &&
       task.applicant === newTask.applicant &&
       task.apply_date === newTask.apply_date
@@ -107,6 +110,8 @@ const ToDoAssignmentSystem = () => {
     }
     return false; // 任务已存在，未添加
   }, [checkTaskUniqueness, fetchTasks]);
+
+
 
   const calculateWorkingDays = (hours) => {
     const hoursPerDay = 8;
@@ -156,7 +161,7 @@ const ToDoAssignmentSystem = () => {
         task_content: task.content,
         applicant: task.applicant,
         apply_date: task.apply_date,
-        responsible: "默认负责人",
+        responsible: "AE负责人",
         start: startDate.toISOString(),
         end: endDate.toISOString()
       };
@@ -428,7 +433,7 @@ const ToDoAssignmentSystem = () => {
         if (item['完成状态'] === '未完成') {
           const estimatedHours = parseInt(item['预估工时']) || 0;
           const taskData = {
-            content: `${item['工单号']} - ${item['治具名称']}`,
+            content: `${item['治具名称']} - ${item['工单号']} `,
             applicant: item['申请人'],
             apply_date: item['申请日期'],
             due_date: item['需求日期'],
