@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { Calendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
@@ -19,13 +19,114 @@ const RecycleBin = ({ isOver }) => (
   </div>
 );
 
-
-
 const ToDoAssignmentSystem = () => {
   const [tasks, setTasks] = useState([]);
   const [events, setEvents] = useState([]);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [updateTrigger, setUpdateTrigger] = useState(0);
+
+
+  const addWorkingDays = (startDate, days) => {
+    let currentDate = moment(startDate).startOf('day');
+    let workingDaysAdded = 0;
+  
+    // 如果起始日期是工作日，从当天开始计算
+    if (currentDate.isoWeekday() <= 5) {
+      workingDaysAdded = 1;
+    }
+  
+    while (workingDaysAdded < days) {
+      currentDate.add(1, 'days');
+      if (currentDate.isoWeekday() <= 5) { // 1-5 代表周一到周五
+        workingDaysAdded++;
+      }
+    }
+  
+    // 设置结束时间为最后一个工作日的下午 5 点
+    return currentDate.hour(17).minute(0).second(0).millisecond(0).toDate();
+  };
+
+
+// //处理Event到分段的函数
+
+
+
+const processEvents = useCallback((events) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  return events.flatMap(event => {
+    const start = moment(event.start).startOf('day');
+    const end = moment(event.end).endOf('day');
+    const result = [];
+
+    let currentStart = start.clone();
+    while (currentStart.isSameOrBefore(end)) {
+      // 如果当前日期是周末，跳到下一个工作日
+      if (currentStart.day() === 0 || currentStart.day() === 6) {
+        currentStart.add(1, 'days');
+        continue;
+      }
+
+      let currentEnd = currentStart.clone();
+      // 找到这一周的最后一个工作日或结束日期，以较晚者为准
+      while (currentEnd.isBefore(end) && currentEnd.day() !== 5) {
+        currentEnd.add(1, 'days');
+      }
+      if (currentEnd.day() === 5 && currentEnd.isBefore(end)) {
+        // 如果是周五且不是最后一天，延长到这一天的结束
+        currentEnd.endOf('day');
+      } else if (currentEnd.isAfter(end)) {
+        currentEnd = end.clone();
+      }
+
+      // 创建这个时间段的事件
+      result.push(createEventSegment(event, currentStart, currentEnd, today));
+
+      // 移动到下一个工作日
+      currentStart = currentEnd.clone().add(1, 'days');
+      if (currentStart.day() === 6) { // 如果是周六，跳到下周一
+        currentStart.add(2, 'days');
+      } else if (currentStart.day() === 0) { // 如果是周日，跳到周一
+        currentStart.add(1, 'days');
+      }
+    }
+
+    return result;
+  });
+}, []);
+
+// 辅助函数保持不变
+const createEventSegment = (event, start, end, today) => {
+  let style = {
+    backgroundColor: '#3174ad',
+    borderRadius: '5px',
+    opacity: 0.8,
+    color: 'white',
+    border: '0px',
+    display: 'block'
+  };
+
+  if (event.is_completed) {
+    style.backgroundColor = '#28a745';  // Green for completed tasks
+  } else if (end < today) {
+    style.backgroundColor = '#dc3545';  // Red for overdue tasks
+  } else if (start <= today && today <= end) {
+    style.backgroundColor = '#ffc107';  // Yellow for ongoing tasks
+  }
+
+  return {
+    ...event,
+    start: start.toDate(),
+    end: end.toDate(),
+    style: style
+  };
+};
+
+
+
+  const processedEvents = useMemo(() => processEvents(events), [events, processEvents]);
+
 
   const calculateStats = useCallback(() => {
     const taskStats = {
@@ -69,7 +170,9 @@ const ToDoAssignmentSystem = () => {
         ...event,
         title: event.task_content,
         start: new Date(event.start),
-        end: new Date(event.end)
+        end: new Date(event.end),
+        originalStart: event.start,  // 保存原始开始日期
+        originalEnd: event.end,      // 保存原始结束日期
       })));
     } catch (error) {
       console.error('获取事件时出错:', error);
@@ -152,10 +255,11 @@ const ToDoAssignmentSystem = () => {
     }
 
     if (source.droppableId === 'taskList' && destination.droppableId.startsWith('calendar-')) {
+
       const dateString = destination.droppableId.split('calendar-')[1];
-      const startDate = moment(dateString).toDate();
-      const endDate = new Date(startDate);
-      endDate.setDate(startDate.getDate() + task.duration);
+      const startDate = moment(dateString).hour(8).minute(0).second(0).millisecond(0).toDate();
+      const endDate = addWorkingDays(startDate, task.duration);
+
 
       const newEvent = {
         task_content: task.content,
@@ -163,7 +267,10 @@ const ToDoAssignmentSystem = () => {
         apply_date: task.apply_date,
         responsible: "AE负责人",
         start: startDate.toISOString(),
-        end: endDate.toISOString()
+        end: endDate.toISOString(),
+        originalStart: startDate.toISOString(),  // 保存原始开始日期
+        originalEnd: endDate.toISOString(),      // 保存原始结束日期
+        duration: task.duration                  // 保存原始工期
       };
 
       if (!checkEventUniqueness(newEvent)) {
@@ -255,9 +362,28 @@ const ToDoAssignmentSystem = () => {
     }
   }, []);
 
+
   const handleSelectEvent = useCallback(async (event) => {
-    const options = ['退回任务列表', '确认任务完成', '取消'];
-    const choice = window.prompt(`请选择操作:\n1. ${options[0]}\n2. ${options[1]}\n3. ${options[2]}\n\n请输入选项编号:`);
+    // 假设原始的起始和结束日期存储在 event.originalStart 和 event.originalEnd 中
+    // 如果没有，我们需要在创建事件时添加这些属性
+    const startDate = moment(event.originalStart || event.start).format('YYYY-MM-DD');
+    const endDate = moment(event.originalEnd || event.end).format('YYYY-MM-DD');
+    const duration = event.duration || moment(endDate).diff(moment(startDate), 'days') + 1;
+  
+    const message = `任务信息：
+  任务名称: ${event.task_content}
+  工期: ${duration} 天
+  原始分配的起始日期: ${startDate}
+  原始分配的结束日期: ${endDate}
+  
+  请选择操作:
+  1. 退回任务列表
+  2. 确认任务完成
+  3. 取消
+  
+  请输入选项编号:`;
+  
+    const choice = window.prompt(message);
     
     switch(choice) {
       case '1':
@@ -265,15 +391,18 @@ const ToDoAssignmentSystem = () => {
         break;
       case '2':
         await completeTask(event);
-        window.location.reload();
         break;
       case '3':
       default:
         break;
     }
-  }, [returnTaskToList, completeTask]);
-
-
+  
+    // 移除全局页面刷新，改为局部更新
+    if (choice === '1' || choice === '2') {
+      await fetchEvents();
+      setUpdateTrigger(prev => prev + 1);
+    }
+  }, [returnTaskToList, completeTask, fetchEvents, setUpdateTrigger]);
 
 
   const renderDateCellWrapper = useCallback(({ children, value }) => (
@@ -295,32 +424,13 @@ const ToDoAssignmentSystem = () => {
  ), []);
 
 
-
-  const eventStyleGetter = useCallback((event) => {
-    let style = {
-      backgroundColor: '#3174ad',
-      borderRadius: '5px',
-      opacity: 0.8,
-      color: 'white',
-      border: '0px',
-      display: 'block'
-    };
-  
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);  // Set to start of day for accurate comparison
-  
-    if (event.is_completed) {
-      style.backgroundColor = '#28a745';  // Green for completed tasks
-    } else if (new Date(event.end) < today) {
-      style.backgroundColor = '#dc3545';  // Red for overdue tasks
-    } else if (new Date(event.start) <= today && today <= new Date(event.end)) {
-      style.backgroundColor = '#ffc107';  // Yellow for ongoing tasks
-    }
-  
-    return { style };
-  }, []);
+//我保留修改意见
+const eventStyleGetter = useCallback((event) => {
+  return { style: event.style };
+}, []);
 
 
+  
   const exportToCSV = () => {
     // 定义所有可能的字段
     const fields = [
@@ -433,7 +543,7 @@ const ToDoAssignmentSystem = () => {
         if (item['完成状态'] === '未完成') {
           const estimatedHours = parseInt(item['预估工时']) || 0;
           const taskData = {
-            content: `${item['治具名称']} - ${item['工单号']} `,
+            content: `${item['治具名称']} -${item['预估工时']}H - ${item['工单号']} `,
             applicant: item['申请人'],
             apply_date: item['申请日期'],
             due_date: item['需求日期'],
@@ -476,32 +586,10 @@ const ToDoAssignmentSystem = () => {
     setIsCollapsed(!isCollapsed);
   };
 
-  // const CustomAgendaEvent = ({ event }) => (
-  //   <div className="custom-agenda-event">
-  //     <div className="agenda-event-title">{event.task_content}</div>
-  //     <div className="agenda-event-details">
-  //       <div>申请人: {event.applicant}</div>
-  //       <div>负责人: {event.responsible}</div>
-  //       <div>工期: {event.duration} 天</div>
-  //     </div>
-  //   </div>
-  // );
 
-  // const CustomAgendaDate = ({ label }) => (
-  //   <span>{moment(label).format('YYYY-MM-DD')}</span>
-  // );
-
-  // const CustomAgendaTime = ({ event }) => (
-  //   <span>{moment(event.start).format('HH:mm')} - {moment(event.end).format('HH:mm')}</span>
-  // );
 
   const customComponents = {
     dateCellWrapper: renderDateCellWrapper,
-    // agenda: {
-    //   // event: CustomAgendaEvent,
-    //   // date: CustomAgendaDate,
-    //   time: CustomAgendaTime,
-    // },
   };
 
   return (
@@ -521,7 +609,7 @@ const ToDoAssignmentSystem = () => {
           <div className="flex-grow p-4">
             <Calendar
               localizer={localizer}
-              events={events}
+              events={processedEvents}
               startAccessor="start"
               endAccessor="end"
               style={{ height: 'calc(100vh - 2rem)' }}
