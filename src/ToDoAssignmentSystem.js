@@ -14,7 +14,7 @@ const localizer = momentLocalizer(moment);
 // const API_BASE_URL = 'https://todo.knowivf.ac.cn'; // 替换为您的实际API基础URL
 
 
-const API_BASE_URL = 'https://todoapi.haydonge.workers.dev'; // 替换为您的实际API基础URL
+const API_BASE_URL = '/api'; // 替换相对API
 
 const RecycleBin = ({ isOver }) => (
   <div className={`flex items-center justify-center w-16 h-16 bg-gray-200 rounded-full ${isOver ? 'bg-red-200' : ''}`}>
