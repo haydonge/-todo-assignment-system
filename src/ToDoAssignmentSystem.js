@@ -131,25 +131,75 @@ const createEventSegment = (event, start, end, today) => {
   const processedEvents = useMemo(() => processEvents(events), [events, processEvents]);
 
 
+  // const calculateStats = useCallback(() => {
+  //   const taskStats = {
+  //     total: tasks.length,
+  //   };
+
+  //   //Dash Board 统计：缺少 On Schedule
+  //   const today = new Date();
+  //   const eventStats = {
+  //     total: events.length,
+  //     completed: events.filter(event => event.is_completed).length,
+  //     inProgress: events.filter(event => 
+  //       new Date(event.start) <= today && today <= new Date(event.end) && !event.is_completed
+  //     ).length,
+  //     overdue: events.filter(event => 
+  //       new Date(event.end) < today && !event.is_completed
+  //     ).length,
+  //   };
+
+  //   return { taskStats, eventStats };
+  // }, [tasks, events]);
+
   const calculateStats = useCallback(() => {
     const taskStats = {
-      total: tasks.length,
+      total: tasks.length, // 未分配任务总数
     };
-
+  
     const today = new Date();
+    today.setHours(0, 0, 0, 0); // 重置时间到当天开始，确保日期比较准确
+  
+    // 计算不同状态的事件数量
     const eventStats = {
-      total: events.length,
-      completed: events.filter(event => event.is_completed).length,
+      total: events.length,  // 所有已分配任务总数
+      completed: events.filter(event => event.is_completed).length,  // 已完成
       inProgress: events.filter(event => 
-        new Date(event.start) <= today && today <= new Date(event.end) && !event.is_completed
-      ).length,
+        !event.is_completed && 
+        new Date(event.start) <= today && 
+        today <= new Date(event.end)
+      ).length,  // 进行中
       overdue: events.filter(event => 
-        new Date(event.end) < today && !event.is_completed
-      ).length,
+        !event.is_completed && 
+        new Date(event.end) < today
+      ).length,  // 已逾期
+      onSchedule: events.filter(event => 
+        !event.is_completed && 
+        new Date(event.start) > today
+      ).length  // 未开始（按计划）
     };
-
+  
+    // 验证总数是否等于所有类别之和
+    const sumOfCategories = eventStats.completed + 
+                           eventStats.inProgress + 
+                           eventStats.overdue + 
+                           eventStats.onSchedule;
+    
+    // 添加验证检查，确保分类完整性
+    if (eventStats.total !== sumOfCategories) {
+      console.warn('事件统计数据不匹配:', {
+        total: eventStats.total,
+        sumOfCategories,
+        completed: eventStats.completed,
+        inProgress: eventStats.inProgress,
+        overdue: eventStats.overdue,
+        onSchedule: eventStats.onSchedule
+      });
+    }
+  
     return { taskStats, eventStats };
   }, [tasks, events]);
+
 
   const { taskStats, eventStats } = calculateStats();
 
@@ -532,6 +582,8 @@ const eventStyleGetter = useCallback((event) => {
       });
     }
   }, [addTask]);
+
+//利用opensheet 获取google sheet内容
 
   const importExternalData = useCallback(async () => {
     try {
