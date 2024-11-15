@@ -683,7 +683,7 @@ const eventStyleGetter = useCallback((event) => {
   
             {/* 右侧仪表板 - 固定宽度 */}
             <div className="w-[10%] flex-shrink-0 p-4 bg-gray-100 overflow-y-auto">
-              <Dashboard taskStats={taskStats} eventStats={eventStats} events={events}/>
+              <Dashboard taskStats={taskStats} eventStats={eventStats} events={events}  tasks={tasks}  />
             </div>
           </div>
         </DragDropContext>

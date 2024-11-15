@@ -25,7 +25,8 @@
     "build": "CI=false react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "dev": "wrangler pages dev --proxy 3000 -- npm start"
+    "dev": "wrangler pages dev --proxy 3001 -- npm start",
+    "pages:dev": "wrangler pages dev ./build --port 8788"
   },
   "eslintConfig": {
     "extends": [
