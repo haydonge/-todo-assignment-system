@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
-import { Calendar, momentLocalizer, Views } from 'react-big-calendar';
+import { Calendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
 import Papa from 'papaparse';
 import { Trash2 } from 'lucide-react';
@@ -131,6 +131,26 @@ const createEventSegment = (event, start, end, today) => {
   const processedEvents = useMemo(() => processEvents(events), [events, processEvents]);
 
 
+  // const calculateStats = useCallback(() => {
+  //   const taskStats = {
+  //     total: tasks.length,
+  //   };
+
+  //   //Dash Board 统计：缺少 On Schedule
+  //   const today = new Date();
+  //   const eventStats = {
+  //     total: events.length,
+  //     completed: events.filter(event => event.is_completed).length,
+  //     inProgress: events.filter(event => 
+  //       new Date(event.start) <= today && today <= new Date(event.end) && !event.is_completed
+  //     ).length,
+  //     overdue: events.filter(event => 
+  //       new Date(event.end) < today && !event.is_completed
+  //     ).length,
+  //   };
+
+  //   return { taskStats, eventStats };
+  // }, [tasks, events]);
 
   const calculateStats = useCallback(() => {
     const taskStats = {
@@ -627,70 +647,49 @@ const eventStyleGetter = useCallback((event) => {
     dateCellWrapper: renderDateCellWrapper,
   };
 
-
-
-
-
-    return (
-      <div className="flex h-screen overflow-hidden">
-        <DragDropContext onDragEnd={onDragEnd}>
-          {/* 左侧任务列表 - 固定宽度且可折叠 */}
-          <div 
-            className={`flex-shrink-0 transition-all duration-300 ease-in-out overflow-hidden ${
-              isCollapsed ? 'w-10' : 'w-64'
-            }`}
-          >
-            <TaskList 
-              tasks={tasks} 
-              isCollapsed={isCollapsed} 
-              toggleSidebar={toggleSidebar}
-              exportToCSV={exportToCSV}
-              importFromCSV={importFromCSV}
-              importExternalData={importExternalData}
+  return (
+    <div className="relative flex h-screen">
+      <DragDropContext onDragEnd={onDragEnd}>
+        <div className={`transition-all duration-300 ease-in-out ${isCollapsed ? 'w-10' : 'w-64'} flex-shrink-0`}>
+          <TaskList 
+            tasks={tasks} 
+            isCollapsed={isCollapsed} 
+            toggleSidebar={toggleSidebar}
+            exportToCSV={exportToCSV}
+            importFromCSV={importFromCSV}
+            importExternalData={importExternalData}
+          />
+        </div>
+        <div className="flex flex-grow">
+          <div className="flex-grow p-4">
+            <Calendar
+              localizer={localizer}
+              events={processedEvents}
+              startAccessor="start"
+              endAccessor="end"
+              style={{ height: 'calc(100vh - 2rem)' }}
+              components={customComponents}
+              onSelectEvent={handleSelectEvent}
+              selectable
+              eventPropGetter={eventStyleGetter}
+              formats={{
+                agendaDateFormat: 'YYYY-MM-DD',
+                agendaTimeRangeFormat: ({ start, end }) => {
+                  return `${moment(start).format('HH:mm')} - ${moment(end).format('HH:mm')}`;
+                },
+              }}
+              key={updateTrigger}
             />
           </div>
-  
-          {/* 中间日历区域 - 弹性增长但保持比例 */}
-          <div className="flex-grow flex min-w-0">
-            <div className="w-[90%] p-4 overflow-hidden">
-              <div className="h-full">
-              <Calendar
-                localizer={localizer}
-                events={processedEvents}
-                eventLimit={5}
-                startAccessor="start"
-                endAccessor="end"
-                style={{ height: 'calc(100vh - 2rem)' }}
-                components={customComponents}
-                onSelectEvent={handleSelectEvent}
-                selectable
-                eventPropGetter={eventStyleGetter}
-                popup={true}  // 启用内联弹出框
-                popupOffset={5}  // 设置弹出框偏移量
-                formats={{
-                  agendaDateFormat: 'YYYY-MM-DD',
-                  agendaTimeRangeFormat: ({ start, end }) => {
-                    return `${moment(start).format('HH:mm')} - ${moment(end).format('HH:mm')}`;
-                  },
-                }}
-                messages={{
-                  showMore: (total) => `+${total} 更多`, // 自定义"更多"文本
-                }}
-                key={updateTrigger}
-              />
-              </div>
-            </div>
-  
-            {/* 右侧仪表板 - 固定宽度 */}
-            <div className="w-[10%] flex-shrink-0 p-4 bg-gray-100 overflow-y-auto">
-              <Dashboard taskStats={taskStats} eventStats={eventStats} events={events}/>
-            </div>
+          <div className="w-[10%] p-4 bg-gray-100">
+            <Dashboard taskStats={taskStats} eventStats={eventStats} events={events}/>
           </div>
-        </DragDropContext>
-      </div>
-    );
-  };
-  
+        </div>
+      </DragDropContext>
+    </div>
+  );
+};
+
 // 任务列表组件
 const TaskList = React.memo(({ tasks, isCollapsed, toggleSidebar, exportToCSV, importFromCSV, importExternalData }) => {
   const fileInputRef = useRef(null);
@@ -782,5 +781,5 @@ const TaskList = React.memo(({ tasks, isCollapsed, toggleSidebar, exportToCSV, i
     </div>
   );
 });
-  
+
 export default ToDoAssignmentSystem;
