@@ -24,48 +24,25 @@ preview_id = "development-preview-kv-id"
 workers_dev = false
 route = { pattern = "yourdomain.com/*", zone_name = "yourdomain.com" }
 vars = { 
-  ENVIRONMENT = "production",
-  APP_URL = "https://yourdomain.com",
-  JWT_SECRET = ""  # 在部署时设置
+    ENVIRONMENT = "production", 
+    APP_URL = "https://yourdomain.com", 
+    JWT_SECRET = "",
+    EMAIL_SENDER = "noreply@yourdomain.com",
+    EMAIL_ZONE_ID = "your-zone-id"
 }
 
 # 生产环境数据库配置
 [[env.production.d1_databases]]
 binding = "DB"
 database_name = "todo_assignment"
-database_id = "your-production-db-id"  # 从 Cloudflare 控制台获取
+database_id = "your-production-db-id"
 
 # KV 命名空间配置（生产环境）
 [[env.production.kv_namespaces]]
 binding = "COMPLETION_TOKENS"
-id = "your-production-kv-id"  # 从 Cloudflare 控制台获取
-
-# Email Workers 配置
-[env.production.vars]
-EMAIL_SENDER = "noreply@yourdomain.com"
-EMAIL_ZONE_ID = "your-zone-id"  # 从 Cloudflare 控制台获取
+id = "your-production-kv-id"
 
 # 资源配置
 [build]
 command = "npm run build"
 upload.format = "service-worker"
-
-[site]
-bucket = "./build"  # React 构建输出目录
-entry-point = "workers-site"
-
-# 开发工具配置
-[dev]
-port = 8787
-local_protocol = "http"
-
-# 自定义配置
-[miniflare]
-port = 8787
-env_path = ".env"
-
-# 构建配置
-[build.upload]
-format = "modules"
-dir = "dist"
-main = "./worker.js"
