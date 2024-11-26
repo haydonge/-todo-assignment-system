@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-const API_URL = 'http://localhost:3000';
+const API_URL = 'http://localhost:3001';
 
 function App() {
   const [posts, setPosts] = useState([]);

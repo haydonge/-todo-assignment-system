@@ -45,3 +45,14 @@ See the section about [deployment](https://facebook.github.io/create-react-app/d
 **Note: this is a one-way operation. Once you `eject`, you can't go back!**
 
 **  不需要特殊的wrangeler，直接push Github即可。
+
+
+No configured name present, using `worker` as a prefix for the title
+
+
+🌀 Creating namespace with title "worker-COMPLETION_TOKENS"
+✨ Success!
+Add the following to your configuration file in your kv_namespaces array:
+[[kv_namespaces]]
+binding = "COMPLETION_TOKENS"
+id = "88e76b6ed66549869bf8db84b778ea0e"

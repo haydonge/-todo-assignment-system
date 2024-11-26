@@ -52,7 +52,8 @@ const ToDoAssignmentSystem = () => {
 
 // //处理Event到分段的函数
 
-// 处理事件到分段的函数
+
+
 const processEvents = useCallback((events) => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -71,7 +72,7 @@ const processEvents = useCallback((events) => {
       }
 
       let currentEnd = currentStart.clone();
-      // 找到这一周的最后一个工作日或结束日期，以较早者为准
+      // 找到这一周的最后一个工作日或结束日期，以较晚者为准
       while (currentEnd.isBefore(end) && currentEnd.day() !== 5) {
         currentEnd.add(1, 'days');
       }
@@ -82,12 +83,8 @@ const processEvents = useCallback((events) => {
         currentEnd = end.clone();
       }
 
-      // 创建这个时间段的事件，传入原始事件的完整信息
-      result.push(createEventSegment({
-        ...event,
-        originalStart: event.originalStart || event.start,  // 确保原始时间信息被传递
-        originalEnd: event.originalEnd || event.end
-      }, currentStart, currentEnd, today));
+      // 创建这个时间段的事件
+      result.push(createEventSegment(event, currentStart, currentEnd, today));
 
       // 移动到下一个工作日
       currentStart = currentEnd.clone().add(1, 'days');
@@ -103,16 +100,9 @@ const processEvents = useCallback((events) => {
 }, []);
 
 // 辅助函数保持不变
-
-
-// 修改创建事件片段的函数，使用原始事件的开始和结束时间来判断状态
 const createEventSegment = (event, start, end, today) => {
-  // 使用事件的原始时间来判断状态
-  const originalStart = new Date(event.originalStart || event.start);
-  const originalEnd = new Date(event.originalEnd || event.end);
-  
   let style = {
-    backgroundColor: '#3174ad', // 默认蓝色
+    backgroundColor: '#3174ad',
     borderRadius: '5px',
     opacity: 0.8,
     color: 'white',
@@ -121,30 +111,24 @@ const createEventSegment = (event, start, end, today) => {
   };
 
   if (event.is_completed) {
-    style.backgroundColor = '#28a745';  // 已完成的任务显示为绿色
-  } else {
-    // 使用原始的开始和结束时间来判断任务状态
-    if (originalEnd < today) {
-      style.backgroundColor = '#dc3545';  // 整个任务已过期显示为红色
-    } else if (originalStart <= today && today <= originalEnd) {
-      style.backgroundColor = '#ffc107';  // 当前日期在任务周期内显示为黄色
-    }
-    // 如果是未来的任务则保持默认的蓝色
+    style.backgroundColor = '#28a745';  // Green for completed tasks
+  } else if (end < today) {
+    style.backgroundColor = '#dc3545';  // Red for overdue tasks
+  } else if (start <= today && today <= end) {
+    style.backgroundColor = '#ffc107';  // Yellow for ongoing tasks
   }
 
   return {
     ...event,
     start: start.toDate(),
     end: end.toDate(),
-    style: style,
-    originalStart: originalStart,  // 保持原始时间信息
-    originalEnd: originalEnd
+    style: style
   };
 };
 
 
 
-  // const processedEvents = useMemo(() => processEvents(events), [events, processEvents]);
+  const processedEvents = useMemo(() => processEvents(events), [events, processEvents]);
 
 
 
