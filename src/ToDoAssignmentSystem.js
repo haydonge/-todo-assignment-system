@@ -739,7 +739,7 @@ const eventStyleGetter = useCallback((event) => {
   
           {/* 中间日历区域 - 弹性增长但保持比例 */}
           <div className="flex-grow flex min-w-0">
-            <div className="w-[90%] p-4 overflow-hidden">
+            <div className="w-[90%] p-4 overflow-auto">
               <div className="h-full">
               <Calendar
                 localizer={localizer}
