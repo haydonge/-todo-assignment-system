@@ -10,8 +10,8 @@ vars = { ENVIRONMENT = "development" }
 # Workers 绑定数据库配置
 [[env.development.d1_databases]]
 binding = "DB"
-database_name = "todo_assignment_local"
-database_id = "development-db-id"
+database_name = "cfw-bun-hono-drizzle-d1"
+database_id = "4ce62718-7b9a-4d8f-ad8a-740882958516"
 
 # KV 命名空间配置（开发环境）
 [[env.development.kv_namespaces]]
@@ -19,23 +19,13 @@ binding = "COMPLETION_TOKENS"
 id = "development-kv-id"
 preview_id = "development-preview-kv-id"
 
-# 生产环境配置
-[env.production]
-workers_dev = false
-route = { pattern = "yourdomain.com/*", zone_name = "yourdomain.com" }
-vars = { 
-    ENVIRONMENT = "production", 
-    APP_URL = "https://yourdomain.com", 
-    JWT_SECRET = "",
-    EMAIL_SENDER = "noreply@yourdomain.com",
-    EMAIL_ZONE_ID = "your-zone-id"
-}
+
 
 # 生产环境数据库配置
 [[env.production.d1_databases]]
 binding = "DB"
-database_name = "todo_assignment"
-database_id = "your-production-db-id"
+database_name = "cfw-bun-hono-drizzle-d1"
+database_id = "4ce62718-7b9a-4d8f-ad8a-740882958516"
 
 # KV 命名空间配置（生产环境）
 [[env.production.kv_namespaces]]
