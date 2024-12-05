@@ -70,10 +70,12 @@ export const transitions = {
   slow: 'all 0.4s ease'
 };
 
-export default {
+const theme = {
   colors,
   spacing,
   borderRadius,
   shadows,
   transitions
 };
+
+export default theme;

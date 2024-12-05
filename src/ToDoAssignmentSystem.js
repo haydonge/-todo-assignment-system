@@ -186,6 +186,9 @@ const ToDoAssignmentSystem = () => {
             e.id === updatedEvent.id ? { ...updatedEvent, start: new Date(updatedEvent.start), end: new Date(updatedEvent.end) } : e
           ));
           break;
+        default:
+          console.log('No action selected');
+          break;
       }
       setUpdateTrigger(prev => prev + 1);
     } catch (error) {
