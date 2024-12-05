@@ -7,7 +7,7 @@ export const colors = {
   // Task Status Colors
   taskStatus: {
     notStarted: '#3174ad',  // 未开始：蓝色
-    inProgress: '#9C27B0',  // 进行中：紫色
+    inProgress: '#9C2B0f',  // 进行中：紫色
     completed: '#28a323',   // 已完成：绿色
     overdue: '#dc3545',     // 逾期：红色
   },

@@ -15,6 +15,8 @@ import DateCellWrapper from './components/Calendar/DateCellWrapper';
 import { addWorkingDays, calculateWorkingDays } from './components/Utils/dateUtils';
 import * as api from './components/Utils/apiUtils';
 
+const API_BASE_URL = 'https://cfw-bun-hono-drizzle.haydonge.workers.dev';
+
 const localizer = momentLocalizer(moment);
 
 const ToDoAssignmentSystem = () => {
@@ -163,7 +165,7 @@ const ToDoAssignmentSystem = () => {
 原始分配的结束日期: ${endDate}
 
 请选择操作:
-1. 退回任务列表22222222
+1. 退回任务列表
 2. 确认任务完成
 3. 取消
 

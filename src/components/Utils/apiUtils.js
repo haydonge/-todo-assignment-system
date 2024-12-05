@@ -1,4 +1,9 @@
-const API_BASE_URL = '/api';
+const API_BASE_URL = 'https://cfw-bun-hono-drizzle.haydonge.workers.dev';
+
+// 直接从 api.js 导入并重新导出所有 API 函数
+export * from '../../api/api';
+
+export { API_BASE_URL };
 
 export const fetchTasks = async () => {
   try {

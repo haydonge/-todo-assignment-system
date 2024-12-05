@@ -19,6 +19,46 @@ const TaskList = ({ tasks, isCollapsed, toggleSidebar, exportToCSV, importFromCS
       
       {!isCollapsed && (
         <>
+            <Droppable droppableId="taskList" type="TASK">
+            {(provided) => (
+              <div
+                ref={provided.innerRef}
+                {...provided.droppableProps}
+                className="flex-grow overflow-y-auto p-4"
+              >
+                {tasks.map((task, index) => (
+                  <Draggable
+                    key={task.id.toString()}
+                    draggableId={task.id.toString()}
+                    index={index}
+                  >
+                    {(provided, snapshot) => (
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.draggableProps}
+                        {...provided.dragHandleProps}
+                        className={`p-4 mb-2 bg-white rounded shadow ${
+                          snapshot.isDragging ? 'opacity-50' : ''
+                        }`}
+                      >
+                        <div className="font-bold">{task.content}</div>
+                        <div className="text-sm text-gray-600">
+                          申请人: {task.applicant}
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          申请日期: {task.apply_date}
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          工期: {task.duration} 天
+                        </div>
+                      </div>
+                    )}
+                  </Draggable>
+                ))}
+                {provided.placeholder}
+              </div>
+            )}
+          </Droppable>
           <div className="p-4 space-y-2">
             <button
               onClick={exportToCSV}
@@ -47,46 +87,7 @@ const TaskList = ({ tasks, isCollapsed, toggleSidebar, exportToCSV, importFromCS
             </button>
           </div>
 
-          <Droppable droppableId="taskList" type="TASK">
-            {(provided) => (
-              <div
-                ref={provided.innerRef}
-                {...provided.droppableProps}
-                className="flex-grow overflow-y-auto p-4"
-              >
-                {tasks.map((task, index) => (
-                  <Draggable
-                    key={task.id.toString()}
-                    draggableId={task.id.toString()}
-                    index={index}
-                  >
-                    {(provided, snapshot) => (
-                      <div
-                        ref={provided.innerRef}
-                        {...provided.draggableProps}
-                        {...provided.dragHandleProps}
-                        className={`p-4 mb-2 bg-white rounded shadow ${
-                          snapshot.isDragging ? 'opacity-50' : ''
-                        }`}
-                      >
-                        <div className="font-bold text-black">{task.content}</div>
-                        <div className="text-sm text-black">
-                          申请人: {task.applicant}
-                        </div>
-                        <div className="text-sm text-black">
-                          申请日期: {task.apply_date}
-                        </div>
-                        <div className="text-sm text-black">
-                          工期: {task.duration} 天
-                        </div>
-                      </div>
-                    )}
-                  </Draggable>
-                ))}
-                {provided.placeholder}
-              </div>
-            )}
-          </Droppable>
+        
         </>
       )}
     </div>
