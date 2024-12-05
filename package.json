@@ -17,16 +17,21 @@
     "react-calendar": "^5.0.0",
     "react-dom": "^18.3.1",
     "react-modal": "^3.16.1",
+    "react-router-dom": "^7.0.1",
     "react-scripts": "5.0.1",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "CI=false react-scripts build",
+    "build1": "cross-env CI=false react-scripts build",
+    "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "dev": "wrangler pages dev --proxy 3001 -- npm start",
-    "pages:dev": "wrangler pages dev ./build --port 8788"
+    "devs": "wrangler pages dev --proxy 3000 -- npm start",
+    "dev": "npm run build && npm run dev:wrangler",
+    "dev:wrangler": "wrangler pages dev build --port 8788 --local --persist",
+    "pages:dev": "wrangler pages dev ./build --port 8788",
+    "dev:local": "cross-env NO_D1_WARNING=true node server.mjs"
   },
   "eslintConfig": {
     "extends": [
@@ -50,6 +55,7 @@
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
     "@cloudflare/workers-types": "^4.20241106.0",
     "autoprefixer": "^10.4.19",
+    "cross-env": "^7.0.3",
     "postcss": "^8.4.40",
     "tailwindcss": "^3.4.7",
     "wrangler": "^3.85.0"

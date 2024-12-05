@@ -1,38 +1,7 @@
 name = "todo-assignment-system"
-main = "src/worker.js"
-compatibility_date = "2024-01-01"
+compatibility_date = "2024-11-27"
 
-# 开发环境配置
-[env.development]
-workers_dev = true
-vars = { ENVIRONMENT = "development" }
-
-# Workers 绑定数据库配置
-[[env.development.d1_databases]]
+[[d1_databases]]
 binding = "DB"
 database_name = "cfw-bun-hono-drizzle-d1"
 database_id = "4ce62718-7b9a-4d8f-ad8a-740882958516"
-
-# KV 命名空间配置（开发环境）
-[[env.development.kv_namespaces]]
-binding = "COMPLETION_TOKENS"
-id = "development-kv-id"
-preview_id = "development-preview-kv-id"
-
-
-
-# 生产环境数据库配置
-[[env.production.d1_databases]]
-binding = "DB"
-database_name = "cfw-bun-hono-drizzle-d1"
-database_id = "4ce62718-7b9a-4d8f-ad8a-740882958516"
-
-# KV 命名空间配置（生产环境）
-[[env.production.kv_namespaces]]
-binding = "COMPLETION_TOKENS"
-id = "your-production-kv-id"
-
-# 资源配置
-[build]
-command = "npm run build"
-upload.format = "service-worker"

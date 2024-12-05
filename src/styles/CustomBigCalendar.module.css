@@ -1,0 +1,140 @@
+/* 
+  注意：这个文件使用CSS变量来引用theme.js中定义的颜色。
+  需要在应用的根级别设置这些CSS变量。
+*/
+
+:root {
+  /* Colors */
+  --color-primary: var(--todo-primary, #3174ad);
+  --color-secondary: var(--todo-secondary, #6c757d);
+  
+  /* Task Status Colors */
+  --task-not-started: var(--todo-task-not-started, #3174ad);
+  --task-in-progress: var(--todo-task-in-progress, #9C27B0);
+  --task-completed: var(--todo-task-completed, #28a323);
+  --task-overdue: var(--todo-task-overdue, #dc3545);
+  
+  /* Calendar Colors */
+  --calendar-today: var(--todo-calendar-today, #f0f9ff);
+  --calendar-highlight: var(--todo-calendar-highlight, #c6f6d5);
+  --calendar-border: var(--todo-calendar-border, #DDD);
+  --calendar-event-text: var(--todo-calendar-event-text, #fff);
+}
+
+/* Base Calendar Layout */
+.rbc-calendar {
+  box-sizing: border-box;
+  height: 100% !important;
+  min-height: 700px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  z-index: 1;
+}
+
+/* Month View Styles */
+.rbc-month-view {
+  flex: 1;
+  min-height: 0;
+  height: 100% !important;
+  border: 1px solid var(--calendar-border);
+}
+
+/* Cell Styles */
+.rbc-month-row {
+  min-height: 250px !important;
+  overflow: visible !important;
+}
+
+.rbc-row-content {
+  min-height: 240px !important;
+}
+
+.rbc-date-cell {
+  padding: var(--spacing-sm);
+  text-align: right;
+  font-weight: bold;
+  color: var(--text-primary);
+}
+
+/* Event Styles */
+.rbc-event {
+  background-color: var(--task-not-started);
+  border-radius: var(--border-radius-sm);
+  color: var(--calendar-event-text);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: 0.85em;
+  margin-bottom: var(--spacing-xs);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.rbc-event:hover {
+  filter: brightness(1.1);
+}
+
+.rbc-event.completed {
+  background-color: var(--task-completed);
+}
+
+.rbc-event.overdue {
+  background-color: var(--task-overdue);
+}
+
+.rbc-event.in-progress {
+  background-color: var(--task-in-progress);
+}
+
+/* Cell Highlighting */
+.rbc-day-bg.highlight {
+  background-color: var(--calendar-highlight);
+  transition: var(--transition-fast);
+}
+
+.rbc-today {
+  background-color: var(--calendar-today) !important;
+}
+
+/* Header Styles */
+.rbc-header {
+  padding: var(--spacing-sm);
+  font-weight: bold;
+  border-bottom: 1px solid var(--calendar-border);
+  color: var(--text-primary);
+}
+
+/* Toolbar Styles */
+.rbc-toolbar {
+  flex-shrink: 0;
+  margin-bottom: var(--spacing-md);
+  padding: var(--spacing-sm) 0;
+}
+
+.rbc-toolbar button {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--border-radius-sm);
+  color: var(--text-primary);
+  background-color: var(--background-primary);
+  border: 1px solid var(--ui-border);
+  transition: var(--transition-fast);
+}
+
+.rbc-toolbar button:hover {
+  background-color: var(--background-hover);
+}
+
+/* Task Item Styles */
+.task-item {
+  background-color: var(--background-primary);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
+  border-radius: var(--border-radius-sm);
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition-default);
+}
+
+.task-item.dragging {
+  opacity: 0.5;
+  transform: scale(0.95);
+  box-shadow: var(--shadow-md);
+}
