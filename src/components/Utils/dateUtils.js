@@ -4,12 +4,9 @@ export const addWorkingDays = (startDate, days) => {
   let currentDate = moment(startDate).startOf('day');
   let workingDaysAdded = 0;
 
-  if (currentDate.isoWeekday() <= 5) {
-    workingDaysAdded = 1;
-  }
-
   while (workingDaysAdded < days) {
     currentDate.add(1, 'days');
+    // 只有周一到周五才计入工作日
     if (currentDate.isoWeekday() <= 5) {
       workingDaysAdded++;
     }
