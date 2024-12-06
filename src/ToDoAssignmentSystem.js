@@ -394,6 +394,7 @@ const ToDoAssignmentSystem = () => {
         '工单号': item['工单号'],
         '完成状态': item['完成状态']
       }));
+      
 
       let newTasks = 0;
       let skippedTasks = 0;
