@@ -290,14 +290,114 @@ const ToDoAssignmentSystem = () => {
     }
   }, []);
 
+  const checkTaskUniqueness = useCallback((newTask) => {
+    return !tasks.some(task => 
+      task.content === newTask.content && 
+      task.applicant === newTask.applicant && 
+      task.apply_date === newTask.apply_date
+    );
+  }, [tasks]);
+
+  const checkEventUniqueness = useCallback((newEvent) => {
+    return !events.some(event => 
+      event.task_content === newEvent.task_content && 
+      event.applicant === newEvent.applicant && 
+      event.apply_date === newEvent.apply_date
+    );
+  }, [events]);
+
+  const handleDueDateChange = useCallback(async (existingItem, newTask, isEvent = false) => {
+    return new Promise((resolve) => {
+      // 创建一个自定义的大窗口样式
+      const popupStyle = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: white;
+        border: 2px solid #4A90E2;
+        border-radius: 10px;
+        padding: 20px;
+        width: 500px;
+        max-height: 80vh;
+        overflow-y: auto;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        z-index: 1000;
+        text-align: center;
+      `;
+
+      const buttonsStyle = `
+        display: flex;
+        justify-content: center;
+        margin-top: 20px;
+      `;
+
+      const buttonStyle = `
+        margin: 0 10px;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+      `;
+
+      const popupHtml = `
+        <div style="${popupStyle}">
+          <h2>检测到截止日期变化</h2>
+          <div style="margin: 15px 0;">
+            <h3>原任务信息</h3>
+            <p>内容: ${isEvent ? existingItem.task_content : existingItem.content}</p>
+            <p>申请人: ${isEvent ? existingItem.applicant : existingItem.applicant}</p>
+            <p>申请日期: ${isEvent ? existingItem.apply_date : existingItem.apply_date}</p>
+            <p style="color: blue;">原截止日期: ${isEvent ? existingItem.due_date : existingItem.due_date}</p>
+            
+            <h3 style="margin-top: 15px;">新任务信息</h3>
+            <p style="color: green;">新截止日期: ${newTask.due_date}</p>
+          </div>
+          <div style="${buttonsStyle}">
+            <button id="updateButton" style="${buttonStyle} background-color: #4CAF50; color: white;">更新截止日期</button>
+            <button id="cancelButton" style="${buttonStyle} background-color: #f44336; color: white;">保留原截止日期</button>
+          </div>
+        </div>
+      `;
+
+      // 创建并显示弹窗
+      const popupDiv = document.createElement('div');
+      popupDiv.innerHTML = popupHtml;
+      document.body.appendChild(popupDiv);
+
+      // 添加按钮事件监听器
+      const updateButton = popupDiv.querySelector('#updateButton');
+      const cancelButton = popupDiv.querySelector('#cancelButton');
+
+      updateButton.addEventListener('click', () => {
+        document.body.removeChild(popupDiv);
+        resolve({ action: 'update', item: { ...existingItem, due_date: newTask.due_date } });
+      });
+
+      cancelButton.addEventListener('click', () => {
+        document.body.removeChild(popupDiv);
+        resolve({ action: 'keep' });
+      });
+    });
+  }, []);
+
   const importExternalData = useCallback(async () => {
     try {
       const response = await fetch('https://opensheet.elk.sh/1ge-pyzr0uMTxlALiiUh_sEzdVo1ikGJGavLF04u6AVU/4');
-      if (!response.ok) throw new Error('获取外部数据失败');
-      const data = await response.json();
+      const result = await response.json();
+      const data = result.map(item => ({
+        '治具名称': item['治具名称'],
+        '申请人': item['申请人'],
+        '申请日期': item['申请日期'],
+        '需求日期': item['需求日期'],
+        '预估工时': item['预估工时'],
+        '工单号': item['工单号'],
+        '完成状态': item['完成状态']
+      }));
 
       let newTasks = 0;
       let skippedTasks = 0;
+      let updatedTasks = 0;
 
       for (const item of data) {
         if (item['完成状态'] === '未完成') {
@@ -310,30 +410,149 @@ const ToDoAssignmentSystem = () => {
             duration: calculateWorkingDays(estimatedHours)
           };
 
-          try {
-            const response = await fetch(`${API_BASE_URL}/tasks`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(taskData)
-            });
-            if (response.ok) {
+          const isUnique = checkTaskUniqueness(taskData) && checkEventUniqueness({
+            task_content: taskData.content,
+            applicant: taskData.applicant,
+            apply_date: taskData.apply_date
+          });
+
+          if (isUnique) {
+            try {
+              const response = await fetch(`${API_BASE_URL}/tasks`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(taskData)
+              });
+              if (!response.ok) throw new Error('创建任务失败');
               newTasks++;
-            } else {
-              skippedTasks++;
+            } catch (error) {
+              console.error('创建任务时出错:', error);
             }
-          } catch (error) {
-            console.error('创建任务时出错:', error);
+          } else {
+            // 检查是否有截止日期变化
+            const existingTask = tasks.find(task => 
+              task.content === taskData.content && 
+              task.applicant === taskData.applicant && 
+              task.apply_date === taskData.apply_date
+            );
+
+            const existingEvent = events.find(event => 
+              event.task_content === taskData.content && 
+              event.applicant === taskData.applicant && 
+              event.apply_date === taskData.apply_date
+            );
+
+            if (existingTask && existingTask.due_date !== taskData.due_date) {
+              const result = await handleDueDateChange(existingTask, taskData);
+              
+              if (result.action === 'update') {
+                try {
+                  await fetch(`${API_BASE_URL}/tasks/${existingTask.id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(result.item)
+                  });
+                  updatedTasks++;
+                } catch (error) {
+                  console.error('更新任务时出错:', error);
+                }
+              }
+            } else if (existingEvent && existingEvent.due_date !== taskData.due_date) {
+              const result = await handleDueDateChange(existingEvent, taskData, true);
+              
+              if (result.action === 'update') {
+                try {
+                  await fetch(`${API_BASE_URL}/events/${existingEvent.id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(result.item)
+                  });
+                  updatedTasks++;
+                } catch (error) {
+                  console.error('更新事件时出错:', error);
+                }
+              }
+            }
+            
             skippedTasks++;
           }
         }
       }
 
-      alert(`导入完成。\n新增任务: ${newTasks}\n跳过重复任务: ${skippedTasks}`);
       await api.fetchTasks().then(setTasks);
+      alert(`导入完成。\n新增任务: ${newTasks}\n跳过重复任务: ${skippedTasks}\n更新任务: ${updatedTasks}`);
     } catch (error) {
       console.error('导入外部数据时出错:', error);
       alert('导入外部数据失败，请查看控制台了解详细错误信息。');
     }
+  }, [checkTaskUniqueness, checkEventUniqueness, tasks, events, handleDueDateChange]);
+
+  const findDuplicateTask = useCallback((newTask, existingTasks, existingEvents) => {
+    // Find duplicate task in tasks
+    const duplicateTaskInTasks = existingTasks.find(task => 
+      task.content === newTask.content && 
+      task.applicant === newTask.applicant && 
+      task.apply_date === newTask.apply_date
+    );
+
+    // Find duplicate task in events
+    const duplicateTaskInEvents = existingEvents.find(event => 
+      event.task_content === newTask.content && 
+      event.applicant === newTask.applicant && 
+      event.apply_date === newTask.apply_date
+    );
+
+    return {
+      taskInTasks: duplicateTaskInTasks,
+      taskInEvents: duplicateTaskInEvents
+    };
+  }, []);
+
+  const handleDuplicateTask = useCallback(async (newTask, existingTask, isFromEvents) => {
+    return new Promise((resolve) => {
+      const message = `发现重复任务，但截止日期不同：
+原任务信息：
+- 内容：${isFromEvents ? existingTask.task_content : existingTask.content}
+- 申请人：${isFromEvents ? existingTask.applicant : existingTask.applicant}
+- 申请日期：${isFromEvents ? existingTask.apply_date : existingTask.apply_date}
+- 原截止日期：${isFromEvents ? existingTask.due_date : existingTask.due_date}
+
+新任务截止日期：${newTask.due_date}
+
+选择操作：
+1. 保留原任务
+2. 使用新任务的截止日期
+3. 取消导入此任务`;
+
+      const choice = window.prompt(message);
+
+      switch(choice) {
+        case '1': // 保留原任务
+          resolve({ action: 'keep', task: existingTask });
+          break;
+        case '2': // 使用新任务的截止日期
+          resolve({ action: 'update', task: { ...existingTask, due_date: newTask.due_date } });
+          break;
+        case '3': // 取消导入
+        default:
+          resolve({ action: 'skip' });
+          break;
+      }
+    });
+  }, []);
+
+  const isDuplicateTask = useCallback((newTask, existingTasks, existingEvents) => {
+    return existingTasks.some(task => 
+      task.content === newTask.content && 
+      task.applicant === newTask.applicant && 
+      task.apply_date === newTask.apply_date &&
+      task.due_date === newTask.due_date
+    ) || existingEvents.some(event => 
+      event.task_content === newTask.content && 
+      event.applicant === newTask.applicant && 
+      event.apply_date === newTask.apply_date &&
+      event.due_date === newTask.due_date
+    );
   }, []);
 
   const toggleSidebar = useCallback(() => {

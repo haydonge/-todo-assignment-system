@@ -51,6 +51,9 @@ const TaskList = ({ tasks, isCollapsed, toggleSidebar, exportToCSV, importFromCS
                         <div className="text-sm text-gray-600">
                           工期: {task.duration} 天
                         </div>
+                        <div className="text-sm text-gray-600">
+                          截止日期: {task.due_date}
+                        </div>
                       </div>
                     )}
                   </Draggable>
