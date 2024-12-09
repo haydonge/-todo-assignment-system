@@ -1,5 +1,5 @@
 // api.js
-const API_BASE_URL = 'https://cfw-bun-hono-drizzle.haydonge.workers.dev';
+const API_BASE_URL = '/api';
 
 export const fetchTasks = async () => {
   const response = await fetch(`${API_BASE_URL}/tasks`);

@@ -13,9 +13,7 @@ import RecycleBin from './components/TaskManagement/RecycleBin';
 import CustomCalendar from './components/Calendar/CustomCalendar';
 import DateCellWrapper from './components/Calendar/DateCellWrapper';
 import { addWorkingDays, calculateWorkingDays } from './components/Utils/dateUtils';
-import * as api from './components/Utils/apiUtils';
-
-const API_BASE_URL = 'https://cfw-bun-hono-drizzle.haydonge.workers.dev';
+import api from './components/Utils/apiUtils';
 
 const localizer = momentLocalizer(moment);
 
@@ -117,7 +115,7 @@ const ToDoAssignmentSystem = () => {
 
     if (destination.droppableId === 'recycleBin') {
       try {
-        await fetch(`${API_BASE_URL}/tasks/${task.id}`, { method: 'DELETE' });
+        await fetch(`${api.getBaseUrl()}/tasks/${task.id}`, { method: 'DELETE' });
         setTasks(prevTasks => prevTasks.filter(t => t.id !== task.id));
       } catch (error) {
         console.error('删除任务时出错:', error);
@@ -265,7 +263,7 @@ const ToDoAssignmentSystem = () => {
             };
 
             try {
-              const response = await fetch(`${API_BASE_URL}/tasks`, {
+              const response = await fetch(`${api.getBaseUrl()}/tasks`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(taskData)
@@ -395,7 +393,6 @@ const ToDoAssignmentSystem = () => {
         '完成状态': item['完成状态']
       }));
       
-
       let newTasks = 0;
       let skippedTasks = 0;
       let updatedTasks = 0;
@@ -419,15 +416,11 @@ const ToDoAssignmentSystem = () => {
 
           if (isUnique) {
             try {
-              const response = await fetch(`${API_BASE_URL}/tasks`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(taskData)
-              });
-              if (!response.ok) throw new Error('创建任务失败');
+              await api.createTask(taskData);
               newTasks++;
             } catch (error) {
               console.error('创建任务时出错:', error);
+              skippedTasks++;
             }
           } else {
             // 检查是否有截止日期变化
@@ -448,11 +441,7 @@ const ToDoAssignmentSystem = () => {
               
               if (result.action === 'update') {
                 try {
-                  await fetch(`${API_BASE_URL}/tasks/${existingTask.id}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(result.item)
-                  });
+                  await api.updateTask(existingTask.id, result.item);
                   updatedTasks++;
                 } catch (error) {
                   console.error('更新任务时出错:', error);
@@ -463,11 +452,7 @@ const ToDoAssignmentSystem = () => {
               
               if (result.action === 'update') {
                 try {
-                  await fetch(`${API_BASE_URL}/events/${existingEvent.id}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(result.item)
-                  });
+                  await api.updateEvent(existingEvent.id, result.item);
                   updatedTasks++;
                 } catch (error) {
                   console.error('更新事件时出错:', error);
