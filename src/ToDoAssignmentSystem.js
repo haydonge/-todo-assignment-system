@@ -29,7 +29,7 @@ const ToDoAssignmentSystem = () => {
 
     return events.map(event => {
       let className = '';
-      let style = {
+      const style = {
         backgroundColor: 'var(--todo-task-not-started)',
         borderRadius: 'var(--todo-border-radius-sm)',
         opacity: 0.8,
@@ -126,7 +126,10 @@ const ToDoAssignmentSystem = () => {
     if (source.droppableId === 'taskList' && destination.droppableId.startsWith('calendar-')) {
       const dateString = destination.droppableId.split('calendar-')[1];
       const startDate = moment(dateString).hour(8).minute(0).second(0).millisecond(0).toDate();
-      const endDate = addWorkingDays(startDate, task.duration);
+      
+      // 将小时数转换为工作日数，小于8小时的算作1天
+      const workingDays = task.duration <= 1 ? 1 : task.duration;
+      const endDate = addWorkingDays(startDate, workingDays);
 
       const newEvent = {
         task_content: task.content,
@@ -142,6 +145,7 @@ const ToDoAssignmentSystem = () => {
 
       try {
         const assignedEvent = await api.assignTask(task.id, newEvent);
+        window.location.reload();
         setEvents(prevEvents => [...prevEvents, assignedEvent]);
         setTasks(prevTasks => prevTasks.filter(t => t.id !== task.id));
         setUpdateTrigger(prev => prev + 1);
@@ -178,12 +182,13 @@ const ToDoAssignmentSystem = () => {
           await api.fetchTasks().then(setTasks);
           setEvents(prevEvents => prevEvents.filter(e => e.id !== event.id));
           break;
-        case '2':
+        case '2': {
           const updatedEvent = await api.completeTask(event.id, event);
           setEvents(prevEvents => prevEvents.map(e => 
             e.id === updatedEvent.id ? { ...updatedEvent, start: new Date(updatedEvent.start), end: new Date(updatedEvent.end) } : e
           ));
           break;
+        }
         default:
           console.log('No action selected');
           break;
@@ -259,7 +264,7 @@ const ToDoAssignmentSystem = () => {
               applicant: row.applicant,
               apply_date: row.apply_date,
               due_date: row.due_date,
-              duration: parseInt(row.duration)
+              duration: Number.parseInt(row.duration)
             };
 
             try {
@@ -384,13 +389,13 @@ const ToDoAssignmentSystem = () => {
       const response = await fetch('https://opensheet.elk.sh/1ge-pyzr0uMTxlALiiUh_sEzdVo1ikGJGavLF04u6AVU/4');
       const result = await response.json();
       const data = result.map(item => ({
-        '治具名称': item['治具名称'],
-        '申请人': item['申请人'],
-        '申请日期': item['申请日期'],
-        '需求日期': item['需求日期'],
-        '预估工时': item['预估工时'],
-        '工单号': item['工单号'],
-        '完成状态': item['完成状态']
+        治具名称: item.治具名称,
+        申请人: item.申请人,
+        申请日期: item.申请日期,
+        需求日期: item.需求日期,
+        预估工时: item.预估工时,
+        工单号: item.工单号,
+        完成状态: item.完成状态
       }));
       
       let newTasks = 0;
@@ -398,13 +403,13 @@ const ToDoAssignmentSystem = () => {
       let updatedTasks = 0;
 
       for (const item of data) {
-        if (item['完成状态'] === '未完成') {
-          const estimatedHours = parseInt(item['预估工时']) || 0;
+        if (item.完成状态 === '未完成') {
+          const estimatedHours = Number.parseInt(item.预估工时) || 0;
           const taskData = {
-            content: `${item['治具名称']} -${item['预估工时']}H - ${item['工单号']} `,
-            applicant: item['申请人'],
-            apply_date: item['申请日期'],
-            due_date: item['需求日期'],
+            content: `${item.治具名称} -${item.预估工时}H - ${item.工单号} `,
+            applicant: item.申请人,
+            apply_date: item.申请日期,
+            due_date: item.需求日期,
             duration: calculateWorkingDays(estimatedHours)
           };
 
