@@ -24,20 +24,16 @@
   z-index: 2;
 }
 
-/* Increase cell height and improve cell styling */
+/* 增加日历单元格的最小高度 */
 .rbc-month-row {
-  min-height: 250px !important; /* 增加单元格高度 */
-  overflow: visible !important;
+  min-height: 240px !important;
 }
 
 .rbc-row-content {
-  min-height: 240px !important; /* 内容区域高度 */
-}
-
-.rbc-date-cell {
-  padding: 4px;
-  text-align: right;
-  font-weight: bold;
+  min-height: 230px !important;
+  position: relative;
+  user-select: none;
+  z-index: 4;
 }
 
 /* Event Styles */
@@ -60,99 +56,85 @@
 /* Cell Highlighting */
 .rbc-day-bg.highlight {
   background-color: #c6f6d5;
-  transition: background-color 0.2s ease;
 }
 
+/* Today's Cell Styling */
 .rbc-today {
-  background-color: #f0f9ff !important;
+  background-color: #ebf8ff;
 }
 
-/* Header Styles */
+/* Header Row Styling */
 .rbc-header {
-  padding: 8px 4px;
+  padding: 8px 3px;
   font-weight: bold;
   border-bottom: 1px solid #DDD;
-  z-index: 3;
 }
 
-.rbc-toolbar {
-  flex-shrink: 0;
-  margin-bottom: 12px;
-  padding: 8px 0;
+/* Selected Cell Styling */
+.rbc-selected-cell {
+  background-color: rgba(0, 120, 212, 0.1);
 }
 
-.rbc-toolbar button {
-  padding: 6px 12px;
-  border-radius: 4px;
+/* Off-range Dates */
+.rbc-off-range-bg {
+  background: #f5f5f5;
 }
 
-/* Task Item Styles */
-.task-item {
-  background-color: white;
-  padding: 16px;
-  margin-bottom: 8px;
-  border-radius: 4px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-  transition: all 0.3s ease;
-}
-
-.task-item.dragging {
-  opacity: 0.5;
-  transform: scale(0.95);
-}
-
-/* Modal Styles */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+/* Month Row */
+.rbc-month-row {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10000;
-}
-
-.modal-content {
-  background-color: white;
-  padding: 1.5rem;
-  border-radius: 0.5rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  z-index: 10001;
-}
-
-/* Responsive height adjustments */
-@media screen and (min-height: 800px) {
-  .rbc-month-row {
-    min-height: 180px !important;
-  }
-  
-  .rbc-row-content {
-    min-height: 170px !important;
-  }
-}
-
-@media screen and (min-height: 1000px) {
-  .rbc-month-row {
-    min-height: 200px !important;
-  }
-  
-  .rbc-row-content {
-    min-height: 190px !important;
-  }
-}
-
-/* Utility Classes */
-.rbc-abs-full {
+  position: relative;
+  flex-direction: column;
+  flex: 1 0 0;
   overflow: hidden;
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  height: 100%;
 }
 
-.rbc-ellipsis {
-  display: block;
+/* Time Grid */
+.rbc-time-view {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  width: 100%;
+  border: 1px solid #DDD;
+  min-height: 0;
+}
+
+/* Time Grid Header */
+.rbc-time-header {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+}
+
+/* Time Grid Content */
+.rbc-time-content {
+  display: flex;
+  flex: 1 0 0;
+  align-items: flex-start;
+  width: 100%;
+  border-top: 2px solid #DDD;
+  overflow-y: auto;
+  position: relative;
+}
+
+/* Label Column */
+.rbc-label {
+  padding: 0 5px;
+}
+
+/* Time Indicator */
+.rbc-current-time-indicator {
+  position: absolute;
+  z-index: 3;
+  height: 1px;
+  background-color: #74ad31;
+  pointer-events: none;
+}
+
+/* Event Content */
+.rbc-event-content {
+  font-size: 0.85em;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

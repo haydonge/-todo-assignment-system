@@ -14,7 +14,7 @@ const CustomCalendar = ({
     <Calendar
       localizer={localizer}
       events={events}
-      eventLimit={5}
+      eventLimit={8}
       startAccessor="start"
       endAccessor="end"
       style={{ height: 'calc(100vh - 2rem)' }}
