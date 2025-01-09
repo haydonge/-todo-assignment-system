@@ -5,7 +5,7 @@ export async function onRequest(context) {
   const targetPath = url.pathname.replace('/api/', '');
   
   // 构建目标 API URL
-  const targetUrl = `https://todo.knowivf.ac.cn/${targetPath}`;
+  const targetUrl = `https://todoapi.knowivf.ac.cn/${targetPath}`;
   
   console.log(`Proxying request to: ${targetUrl}`); // 调试日志
 
